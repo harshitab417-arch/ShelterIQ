@@ -7,7 +7,7 @@ const axios = require('axios');
 /**
  * Fetch climate data from Open-Meteo API for given lat/lng
  */
-async function fetchOpenMeteoClimate(latitude, longitude, days = 7) {
+async function fetchOpenMeteoClimate(latitude, longitude, days = 7, cityName = null) {
   try {
     const lat = Number(latitude);
     const lng = Number(longitude);
@@ -42,9 +42,11 @@ async function fetchOpenMeteoClimate(latitude, longitude, days = 7) {
       };
     });
 
+    const displayName = cityName || `Open-Meteo (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`;
+    
     return {
-      name: `Open-Meteo (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`,
-      location: `Lat: ${lat.toFixed(2)}, Lng: ${lng.toFixed(2)}`,
+      name: displayName,
+      location: displayName,
       latitude: lat,
       longitude: lng,
       elevation: response.data.elevation || 3500,

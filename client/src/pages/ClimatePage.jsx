@@ -14,9 +14,11 @@ export default function ClimatePage() {
   const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [cityName, setCityName] = useState('');
 
   // CSV Upload State
   const [csvFile, setCsvFile] = useState(null);
+  const [csvText, setCsvText] = useState('');
 
   useEffect(() => {
     loadClimates();
@@ -41,7 +43,12 @@ export default function ClimatePage() {
     setError('');
 
     try {
-      const res = await api.post('/climate/import', { latitude: lat, longitude: lng, days });
+      const res = await api.post('/climate/import', { 
+        latitude: lat, 
+        longitude: lng, 
+        days,
+        cityName: cityName || `Open-Meteo (${lat}, ${lng})`
+      });
       setSelectedClimate(res.data);
       await loadClimates();
     } catch (err) {
@@ -53,24 +60,23 @@ export default function ClimatePage() {
 
   const handleCsvUpload = async (e) => {
     e.preventDefault();
-    if (!csvFile) return;
+    const rawText = csvText.trim();
+    if (!rawText) {
+      setError('Please upload a CSV file or paste CSV data into the text area.');
+      return;
+    }
 
     setLoading(true);
     setError('');
 
-    const formData = new FormData();
-    formData.append('file', csvFile);
-    formData.append('name', `CSV Upload (${csvFile.name})`);
-    formData.append('location', 'Uploaded CSV Site');
-
     try {
-      const res = await api.post('/climate/csv', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const res = await api.post('/climate/csv', { csvText: rawText, location: 'IMD Station Data' }, {
+        headers: { 'Content-Type': 'application/json' }
       });
       setSelectedClimate(res.data.dataset);
       await loadClimates();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to parse CSV file.');
+      setError(err.response?.data?.error || 'Failed to parse CSV data.');
     } finally {
       setLoading(false);
     }
@@ -126,6 +132,16 @@ export default function ClimatePage() {
           {activeTab === 'open-meteo' ? (
             <form onSubmit={handleOpenMeteoFetch} className="space-y-3">
               <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Location Name (optional)</label>
+                <input 
+                  type="text" 
+                  value={cityName} 
+                  onChange={(e) => setCityName(e.target.value)} 
+                  className="input-clean" 
+                  placeholder="e.g. Leh, Ladakh"
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Latitude (°)</label>
                 <input type="number" step="0.01" value={lat} onChange={(e) => setLat(e.target.value)} className="input-clean" required />
               </div>
@@ -150,10 +166,34 @@ export default function ClimatePage() {
                   accept=".csv"
                   onChange={(e) => setCsvFile(e.target.files[0])}
                   className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
-                  required
                 />
               </div>
-              <p className="text-[11px] text-slate-400">Required format: timestamp, temperature, solarRadiation, windSpeed, humidity</p>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-white text-slate-500">OR paste CSV data</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Paste CSV Data</label>
+                <textarea
+                  value={csvText}
+                  onChange={(e) => setCsvText(e.target.value)}
+                  placeholder={"timestamp,temperature,solarRadiation,windSpeed,humidity\n2024-01-01T00:00,-12.5,0,3.2,45\n2024-01-01T01:00,-13.0,0,2.8,47"}
+                  className="input-clean font-mono text-xs h-32 resize-y"
+                />
+              </div>
+
+              <div className="p-3 bg-sky-50 border border-sky-200 rounded-lg">
+                <p className="text-[11px] font-semibold text-sky-800 mb-1">IMD CSV Format</p>
+                <p className="text-[10px] text-sky-700">Required columns: timestamp, temperature (°C), solarRadiation (W/m²), windSpeed (m/s), humidity (%)</p>
+                <p className="text-[10px] text-sky-600 mt-1">Header row is auto-detected. Missing columns use defaults: solar=0, wind=2.0, humidity=50.</p>
+              </div>
+
               <button type="submit" disabled={loading} className="btn-primary w-full py-2">
                 <Upload className="w-4 h-4" /> {loading ? 'Parsing...' : 'Upload & Validate CSV'}
               </button>

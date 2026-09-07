@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Check, ArrowRight, ArrowLeft, Sun, Box, Layers, Sliders, Play, Thermometer } from 'lucide-react';
 import Shelter3DViewer from '../three/Shelter3DViewer';
+import LocationPicker from '../components/LocationPicker';
 
 export default function NewSimulation() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ export default function NewSimulation() {
   const [error, setError] = useState('');
 
   // Wizard Form State
-  const [selectedClimateId, setSelectedClimateId] = useState('');
+  const [selectedClimate, setSelectedClimate] = useState(null);
   const [shelterName, setShelterName] = useState('New Passive Shelter');
   const [geometry, setGeometry] = useState({
     length: 6.0,
@@ -59,7 +60,6 @@ export default function NewSimulation() {
 
         const climList = cRes.data || [];
         setClimates(climList);
-        if (climList.length > 0) setSelectedClimateId(climList[0]._id);
 
         // Set default materials
         const wall = matList.find(m => m.category === 'Wall') || matList[0];
@@ -95,7 +95,11 @@ export default function NewSimulation() {
     setLoading(true);
     setError('');
 
-    const chosenClimate = climates.find(c => c._id === selectedClimateId) || climates[0];
+    if (!selectedClimate) {
+      setError('Please select a location and fetch climate data first.');
+      setLoading(false);
+      return;
+    }
 
     const shelterPayload = {
       name: shelterName,
@@ -116,7 +120,7 @@ export default function NewSimulation() {
       const res = await api.post('/simulation/run', {
         name: `Simulation - ${shelterName}`,
         shelter: shelterPayload,
-        climateDataset: chosenClimate,
+        climateDataset: selectedClimate,
         comfortSettings
       });
 
@@ -178,31 +182,41 @@ export default function NewSimulation() {
         {/* STEP 1: CLIMATE */}
         {currentStep === 1 && (
           <div className="space-y-4">
-            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-              <Sun className="w-5 h-5 text-sky-600" /> Select Climate Profile
-            </h2>
-            <p className="text-xs text-slate-500">Choose environmental dataset (Open-Meteo live API or reference Leh/Ladakh winter dataset).</p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {climates.map((c) => (
-                <div
-                  key={c._id}
-                  onClick={() => setSelectedClimateId(c._id)}
-                  className={`p-4 rounded-xl border cursor-pointer transition ${
-                    selectedClimateId === c._id
-                      ? 'bg-sky-50 border-sky-500 ring-2 ring-sky-200'
-                      : 'bg-white border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-sm font-bold text-slate-800">{c.name}</h3>
-                    <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-semibold">{c.sourceType}</span>
-                  </div>
-                  <p className="text-xs text-slate-500">{c.location} | Elev: {c.elevation || 3500}m</p>
-                  <p className="text-xs text-slate-500 mt-1">Data Points: {c.dataPoints?.length || 0} Hours</p>
+            <LocationPicker
+              onLocationSelected={setSelectedClimate}
+              initialLocation={selectedClimate ? {
+                latitude: selectedClimate.latitude,
+                longitude: selectedClimate.longitude,
+                displayName: selectedClimate.location || selectedClimate.name
+              } : null}
+            />
+            
+            {/* Existing Datasets Section */}
+            {climates.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Or choose from saved datasets</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+                  {climates.map((c) => (
+                    <button
+                      key={c._id}
+                      onClick={() => setSelectedClimate(c)}
+                      className={`p-3 rounded-xl border cursor-pointer transition text-left ${
+                        selectedClimate?._id === c._id
+                          ? 'bg-sky-50 border-sky-500 ring-2 ring-sky-200'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <h4 className="text-sm font-bold text-slate-800">{c.name}</h4>
+                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-semibold">{c.sourceType}</span>
+                      </div>
+                      <p className="text-xs text-slate-500">{c.location} | Elev: {c.elevation || 3500}m</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Data Points: {c.dataPoints?.length || 0} Hours</p>
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
