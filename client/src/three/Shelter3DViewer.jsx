@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
+
 /**
  * Mathematically constructs a true Triangular Prism BufferGeometry for the A-Frame shelter.
  * Vertices:
@@ -156,18 +157,18 @@ function ShelterMesh({ shape = 'rectangle', dimensions = {}, design = {}, openin
 
   // Temperature-driven thermal color tinting
   const envelopeColor = useMemo(() => {
-    if (!thermalHourData) return '#94a3b8'; // Crisp slate engineering gray
+    if (!thermalHourData) return '#d4c5a0'; // Realistic cream — overridden by thermal when active
     const tin = thermalHourData.indoorTemperature;
-    if (tin >= 22) return '#ea580c'; // Warm orange
-    if (tin >= 18) return '#10b981'; // Optimal green comfort
-    if (tin >= 12) return '#38bdf8'; // Moderate cool
-    if (tin >= 0)  return '#60a5fa'; // Cold blue
-    return '#818cf8';                // Freezing sub-zero
+    if (tin >= 22) return '#ea580c';
+    if (tin >= 18) return '#10b981';
+    if (tin >= 12) return '#38bdf8';
+    if (tin >= 0)  return '#60a5fa';
+    return '#818cf8';
   }, [thermalHourData]);
 
   const roofColor = useMemo(() => {
-    if (!thermalHourData) return '#0284c7';
-    if (thermalHourData.solarGain > 350) return '#f59e0b'; // Solar warmed
+    if (!thermalHourData) return '#8a9496'; // Realistic slate gray tile
+    if (thermalHourData.solarGain > 350) return '#f59e0b';
     return '#0369a1';
   }, [thermalHourData]);
 
@@ -179,41 +180,127 @@ function ShelterMesh({ shape = 'rectangle', dimensions = {}, design = {}, openin
   const domeH = Math.max(1.0, Number(dimensions.domeHeight || H || 2.8));
   const ridgeH = Math.max(1.5, Number(dimensions.ridgeHeight || H || 3.8));
 
+  // Roof overhang constants for realistic rectangle house
+  const ROOF_OVH_SIDE = 0.35;
+  const ROOF_OVH_END  = 0.45;
+  const ridgeAboveWall = Math.max(0.9, H * 0.43);
+
   // Precompute custom geometries
-  const aframeGeometry = useMemo(() => createAFrameGeometry(W, ridgeH, L), [W, ridgeH, L]);
+  const aframeGeometry      = useMemo(() => createAFrameGeometry(W, ridgeH, L), [W, ridgeH, L]);
+  const realisticRoofGeom   = useMemo(() => createAFrameGeometry(W + ROOF_OVH_SIDE * 2, ridgeAboveWall, L + ROOF_OVH_END * 2), [W, ridgeAboveWall, L]);
   const quonsetShellGeometry = useMemo(() => createQuonsetShellGeometry(W / 2, L, 48), [W, L]);
-  const quonsetEndGeometry = useMemo(() => createSemicircleGeometry(W / 2, 48), [W]);
+  const quonsetEndGeometry   = useMemo(() => createSemicircleGeometry(W / 2, 48), [W]);
 
   return (
     <group rotation={[0, (orientation * Math.PI) / 180, 0]}>
-      {/* ─── 1. RECTANGLE WITH GABLE ROOF ─── */}
+      {/* ─── 1. REALISTIC RECTANGLE HOUSE ─── */}
       {(normShape === 'rectangle' || normShape === 'rectangular') && (
         <group>
-          {/* Main Opaque Walls */}
+          {/* Green grass ground patch */}
+          <mesh position={[0, -0.18, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[W + 8, L + 8]} />
+            <meshStandardMaterial color="#567a3c" roughness={1.0} metalness={0.0} />
+          </mesh>
+
+          {/* Concrete foundation plinth */}
+          <mesh position={[0, -0.07, 0]} castShadow receiveShadow>
+            <boxGeometry args={[W + 0.38, 0.14, L + 0.38]} />
+            <meshStandardMaterial color="#999999" roughness={0.95} metalness={0.0} />
+          </mesh>
+
+          {/* Walls (cream / sandy plaster) */}
           <mesh position={[0, H / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[W, H, L]} />
-            <meshStandardMaterial color={envelopeColor} roughness={0.6} metalness={0.1} />
+            <meshStandardMaterial color={envelopeColor} roughness={0.85} metalness={0.0} />
           </mesh>
 
-          {/* Pitched Gable Roof */}
-          <mesh position={[0, H + 0.5, 0]} castShadow receiveShadow>
-            <coneGeometry args={[Math.sqrt(W * W + L * L) / 2, 1.0, 4]} />
-            <meshStandardMaterial color={roofColor} roughness={0.4} />
+          {/* Gable roof with overhang (slate gray tiles) */}
+          <mesh geometry={realisticRoofGeom} position={[0, H, 0]} castShadow receiveShadow>
+            <meshStandardMaterial color={roofColor} roughness={0.72} metalness={0.0} side={THREE.DoubleSide} />
           </mesh>
 
-          {/* Window on South Face */}
-          <mesh position={[0, H / 2, L / 2 + 0.02]}>
-            <boxGeometry args={[Math.min(W * 0.7, Math.sqrt(windowArea) * 1.1), 1.1, 0.04]} />
-            <meshStandardMaterial color="#38bdf8" transparent opacity={0.8} roughness={0.1} />
+          {/* ── FRONT FACE (z = +L/2) ── */}
+          {/* Door frame (white) */}
+          <mesh position={[W * 0.18, H * 0.44, L / 2 + 0.025]} castShadow>
+            <boxGeometry args={[1.1, 2.28, 0.05]} />
+            <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
+          </mesh>
+          {/* Door panel (dark walnut wood) */}
+          <mesh position={[W * 0.18, H * 0.44, L / 2 + 0.065]}>
+            <boxGeometry args={[0.92, 2.08, 0.04]} />
+            <meshStandardMaterial color="#4a2910" roughness={0.88} />
+          </mesh>
+          {/* Brass door handle */}
+          <mesh position={[W * 0.18 - 0.3, H * 0.44, L / 2 + 0.1]}>
+            <sphereGeometry args={[0.048, 10, 10]} />
+            <meshStandardMaterial color="#c8920a" roughness={0.15} metalness={0.92} />
+          </mesh>
+          {/* Concrete doorstep */}
+          <mesh position={[W * 0.18, -0.02, L / 2 + 0.24]} receiveShadow>
+            <boxGeometry args={[1.38, 0.1, 0.52]} />
+            <meshStandardMaterial color="#999999" roughness={0.92} />
           </mesh>
 
-          {/* Entrance Door */}
-          <mesh position={[W / 4, 0.9, L / 2 + 0.02]}>
-            <boxGeometry args={[0.9, 1.8, 0.04]} />
-            <meshStandardMaterial color="#78350f" roughness={0.8} />
+          {/* Front left window — white frame */}
+          <mesh position={[-W * 0.26, H * 0.58, L / 2 + 0.025]}>
+            <boxGeometry args={[1.14, 1.14, 0.05]} />
+            <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
+          </mesh>
+          {/* Front left window — glass */}
+          <mesh position={[-W * 0.26, H * 0.58, L / 2 + 0.062]}>
+            <boxGeometry args={[0.94, 0.94, 0.04]} />
+            <meshStandardMaterial color="#a8d8ea" transparent opacity={0.72} roughness={0.06} metalness={0.1} />
+          </mesh>
+          {/* Mullion horizontal */}
+          <mesh position={[-W * 0.26, H * 0.58, L / 2 + 0.075]}>
+            <boxGeometry args={[0.94, 0.04, 0.025]} />
+            <meshStandardMaterial color="#e0e0e0" roughness={0.4} />
+          </mesh>
+          {/* Mullion vertical */}
+          <mesh position={[-W * 0.26, H * 0.58, L / 2 + 0.075]}>
+            <boxGeometry args={[0.04, 0.94, 0.025]} />
+            <meshStandardMaterial color="#e0e0e0" roughness={0.4} />
           </mesh>
 
-          <Html position={[0, H + 1.8, 0]} center>
+          {/* ── LEFT SIDE WALL (x = -W/2) ── */}
+          {/* Frame */}
+          <mesh position={[-W / 2 - 0.025, H * 0.58, -L * 0.05]}>
+            <boxGeometry args={[0.05, 1.14, 1.14]} />
+            <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
+          </mesh>
+          {/* Glass */}
+          <mesh position={[-W / 2 - 0.062, H * 0.58, -L * 0.05]}>
+            <boxGeometry args={[0.04, 0.94, 0.94]} />
+            <meshStandardMaterial color="#a8d8ea" transparent opacity={0.72} roughness={0.06} metalness={0.1} />
+          </mesh>
+
+          {/* ── RIGHT SIDE WALL (x = +W/2) ── */}
+          {/* Frame */}
+          <mesh position={[W / 2 + 0.025, H * 0.58, -L * 0.05]}>
+            <boxGeometry args={[0.05, 1.14, 1.14]} />
+            <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
+          </mesh>
+          {/* Glass */}
+          <mesh position={[W / 2 + 0.062, H * 0.58, -L * 0.05]}>
+            <boxGeometry args={[0.04, 0.94, 0.94]} />
+            <meshStandardMaterial color="#a8d8ea" transparent opacity={0.72} roughness={0.06} metalness={0.1} />
+          </mesh>
+
+          {/* ── DECORATIVE BUSHES ── */}
+          <mesh position={[-W * 0.38, 0.32, L / 2 + 0.28]} castShadow>
+            <sphereGeometry args={[0.46, 9, 9]} />
+            <meshStandardMaterial color="#2e7d32" roughness={1.0} />
+          </mesh>
+          <mesh position={[-W * 0.52, 0.22, L / 2 + 0.1]} castShadow>
+            <sphereGeometry args={[0.3, 8, 8]} />
+            <meshStandardMaterial color="#388e3c" roughness={1.0} />
+          </mesh>
+          <mesh position={[W * 0.48 + 0.1, 0.28, L / 2 + 0.22]} castShadow>
+            <sphereGeometry args={[0.38, 9, 9]} />
+            <meshStandardMaterial color="#33691e" roughness={1.0} />
+          </mesh>
+
+          <Html position={[0, H + ridgeAboveWall + 0.85, 0]} center>
             <div className="bg-slate-900/85 text-white text-[10px] px-2 py-0.5 rounded shadow font-mono whitespace-nowrap">
               Rectangle: {L.toFixed(1)}m × {W.toFixed(1)}m × {H.toFixed(1)}m
             </div>
@@ -426,9 +513,35 @@ export default function Shelter3DViewer({
         </button>
       </div>
 
-      <Canvas camera={{ position: [8, 6, 10], fov: 45 }}>
-        <ambientLight intensity={0.7} />
-        <directionalLight position={[10, 15, 10]} intensity={1.2} castShadow />
+      <Canvas
+        shadows
+        gl={{ antialias: true }}
+        camera={{ position: [8, 6, 10], fov: 45 }}
+      >
+        {/* Sky background */}
+        <color attach="background" args={['#cce8f5']} />
+
+        {/* Distance fog for depth */}
+        <fog attach="fog" args={['#cce8f5', 28, 55]} />
+
+        {/* Lighting */}
+        <ambientLight intensity={0.45} color="#fff8f0" />
+        <hemisphereLight skyColor="#b3d9f5" groundColor="#6a9e50" intensity={0.45} />
+        <directionalLight
+          position={[10, 16, 10]}
+          intensity={1.35}
+          castShadow
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-far={55}
+          shadow-camera-left={-18}
+          shadow-camera-right={18}
+          shadow-camera-top={18}
+          shadow-camera-bottom={-18}
+          shadow-bias={-0.0005}
+        />
+        {/* Soft fill from opposite side */}
+        <directionalLight position={[-6, 8, -8]} intensity={0.3} color="#ddeeff" />
 
         <CameraController bounds={maxDim} />
 
@@ -444,12 +557,13 @@ export default function Shelter3DViewer({
         <Grid
           infiniteGrid
           cellSize={1}
-          cellThickness={1}
-          cellColor="#cbd5e1"
+          cellThickness={0.6}
+          cellColor="#a8c896"
           sectionSize={5}
-          sectionThickness={1.5}
-          sectionColor="#94a3b8"
-          fadeDistance={30}
+          sectionThickness={1.2}
+          sectionColor="#7aaa6a"
+          fadeDistance={28}
+          fadeStrength={1.5}
         />
 
         <OrbitControls ref={controlsRef} makeDefault minDistance={2.5} maxDistance={35} />
