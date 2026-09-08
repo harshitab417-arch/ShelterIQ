@@ -147,6 +147,75 @@ function createSemicircleGeometry(radius, segments = 48) {
   return geom;
 }
 
+function SingleWindow({ position, rotation = [0, 0, 0], scale = 1, mullions = true }) {
+  const w = 1.14 * scale;
+  const h = 1.14 * scale;
+  const gw = 0.94 * scale;
+  const gh = 0.94 * scale;
+
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Frame */}
+      <mesh position={[0, 0, 0.025]}>
+        <boxGeometry args={[w, h, 0.05]} />
+        <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
+      </mesh>
+      {/* Glass */}
+      <mesh position={[0, 0, 0.062]}>
+        <boxGeometry args={[gw, gh, 0.04]} />
+        <meshStandardMaterial color="#a8d8ea" transparent opacity={0.72} roughness={0.06} metalness={0.1} />
+      </mesh>
+      {mullions && (
+        <>
+          {/* Horizontal mullion */}
+          <mesh position={[0, 0, 0.075]}>
+            <boxGeometry args={[gw, 0.04 * scale, 0.025]} />
+            <meshStandardMaterial color="#e0e0e0" roughness={0.4} />
+          </mesh>
+          {/* Vertical mullion */}
+          <mesh position={[0, 0, 0.075]}>
+            <boxGeometry args={[0.04 * scale, gh, 0.025]} />
+            <meshStandardMaterial color="#e0e0e0" roughness={0.4} />
+          </mesh>
+        </>
+      )}
+    </group>
+  );
+}
+
+function SingleDoor({ position, rotation = [0, 0, 0], scale = 1, handleSide = 'left' }) {
+  const frameW = 1.1 * scale;
+  const frameH = 2.2 * scale;
+  const panelW = 0.92 * scale;
+  const panelH = 2.04 * scale;
+  const handleX = (handleSide === 'left' ? -1 : 1) * (0.3 * scale);
+
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Door frame (white) */}
+      <mesh position={[0, 0, 0.025]} castShadow>
+        <boxGeometry args={[frameW, frameH, 0.05]} />
+        <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
+      </mesh>
+      {/* Door panel (dark walnut timber) */}
+      <mesh position={[0, 0, 0.065]}>
+        <boxGeometry args={[panelW, panelH, 0.04]} />
+        <meshStandardMaterial color="#4a2910" roughness={0.88} />
+      </mesh>
+      {/* Brass door handle */}
+      <mesh position={[handleX, 0, 0.1]}>
+        <sphereGeometry args={[0.048 * scale, 10, 10]} />
+        <meshStandardMaterial color="#c8920a" roughness={0.15} metalness={0.92} />
+      </mesh>
+      {/* Concrete doorstep */}
+      <mesh position={[0, -frameH / 2 + 0.05, 0.24]} receiveShadow>
+        <boxGeometry args={[frameW + 0.25, 0.1, 0.52]} />
+        <meshStandardMaterial color="#999999" roughness={0.92} />
+      </mesh>
+    </group>
+  );
+}
+
 /**
  * 3D Geometry Builder for Rectangle, Dome, A-Frame, and Quonset Shelters
  */
@@ -154,6 +223,10 @@ function ShelterMesh({ shape = 'rectangle', dimensions = {}, design = {}, openin
   const normShape = (shape || design?.shape || 'rectangle').toLowerCase();
   const orientation = design?.orientation || 180;
   const windowArea = Number(openings?.windowArea) || 2.5;
+
+  // Extract openings counts with reliable fallbacks
+  const doorCount = Math.max(0, Number(openings?.doorCount !== undefined ? openings.doorCount : (openings?.doors !== undefined ? openings.doors : 1)));
+  const windowCount = Math.max(0, Number(openings?.windowCount !== undefined ? openings.windowCount : (openings?.windows !== undefined ? openings.windows : 2)));
 
   // Temperature-driven thermal color tinting
   const envelopeColor = useMemo(() => {
@@ -191,6 +264,68 @@ function ShelterMesh({ shape = 'rectangle', dimensions = {}, design = {}, openin
   const quonsetShellGeometry = useMemo(() => createQuonsetShellGeometry(W / 2, L, 48), [W, L]);
   const quonsetEndGeometry   = useMemo(() => createSemicircleGeometry(W / 2, 48), [W]);
 
+  // Dynamic window scale based on total window area requested
+  const winScale = useMemo(() => {
+    if (windowCount <= 0) return 0.9;
+    const avgArea = windowArea / windowCount;
+    return Math.max(0.7, Math.min(1.35, Math.sqrt(avgArea / 1.1)));
+  }, [windowCount, windowArea]);
+
+  // ── Placement slot calculators for Rectangular Archetype ──
+  const rectDoorSlots = useMemo(() => {
+    const slots = [];
+    if (doorCount <= 0) return slots;
+    // Slot 1: Front face primary
+    slots.push({ pos: [W * 0.2, H * 0.44, L / 2], rot: [0, 0, 0] });
+    if (doorCount >= 2) {
+      // Slot 2: Rear face primary
+      slots.push({ pos: [-W * 0.2, H * 0.44, -L / 2], rot: [0, Math.PI, 0] });
+    }
+    if (doorCount >= 3) {
+      // Slot 3: Left side wall
+      slots.push({ pos: [-W / 2, H * 0.44, 0], rot: [0, -Math.PI / 2, 0] });
+    }
+    if (doorCount >= 4) {
+      // Slot 4: Right side wall
+      slots.push({ pos: [W / 2, H * 0.44, 0], rot: [0, Math.PI / 2, 0] });
+    }
+    for (let i = 4; i < doorCount; i++) {
+      const frac = ((i - 3) / (doorCount - 3)) * 0.5 - 0.25;
+      slots.push({ pos: [W * frac, H * 0.44, L / 2], rot: [0, 0, 0] });
+    }
+    return slots;
+  }, [doorCount, W, H, L]);
+
+  const rectWindowSlots = useMemo(() => {
+    const slots = [];
+    if (windowCount <= 0) return slots;
+    // Standard possible architectural window locations
+    const candidates = [
+      { pos: [-W * 0.26, H * 0.58, L / 2], rot: [0, 0, 0] },              // 1: Front Left
+      { pos: [-W / 2, H * 0.58, -L * 0.12], rot: [0, -Math.PI / 2, 0] },   // 2: Left Wall center
+      { pos: [W / 2, H * 0.58, -L * 0.12], rot: [0, Math.PI / 2, 0] },    // 3: Right Wall center
+      { pos: [W * 0.26, H * 0.58, -L / 2], rot: [0, Math.PI, 0] },        // 4: Rear Wall Right
+      { pos: [-W * 0.26, H * 0.58, -L / 2], rot: [0, Math.PI, 0] },       // 5: Rear Wall Left
+      { pos: [-W / 2, H * 0.58, L * 0.25], rot: [0, -Math.PI / 2, 0] },   // 6: Left Wall front
+      { pos: [W / 2, H * 0.58, L * 0.25], rot: [0, Math.PI / 2, 0] },    // 7: Right Wall front
+      { pos: [-W / 2, H * 0.58, -L * 0.32], rot: [0, -Math.PI / 2, 0] },  // 8: Left Wall rear
+      { pos: [W / 2, H * 0.58, -L * 0.32], rot: [0, Math.PI / 2, 0] },   // 9: Right Wall rear
+    ];
+
+    for (let i = 0; i < windowCount; i++) {
+      if (i < candidates.length) {
+        slots.push(candidates[i]);
+      } else {
+        // Distribute extra windows along side walls
+        const wallSide = (i % 2 === 0) ? -W / 2 : W / 2;
+        const rot = (i % 2 === 0) ? [0, -Math.PI / 2, 0] : [0, Math.PI / 2, 0];
+        const zPos = ((i % 5) / 5 - 0.5) * L * 0.75;
+        slots.push({ pos: [wallSide, H * 0.58, zPos], rot });
+      }
+    }
+    return slots;
+  }, [windowCount, W, H, L]);
+
   return (
     <group rotation={[0, (orientation * Math.PI) / 180, 0]}>
       {/* ─── 1. REALISTIC RECTANGLE HOUSE ─── */}
@@ -219,74 +354,17 @@ function ShelterMesh({ shape = 'rectangle', dimensions = {}, design = {}, openin
             <meshStandardMaterial color={roofColor} roughness={0.72} metalness={0.0} side={THREE.DoubleSide} />
           </mesh>
 
-          {/* ── FRONT FACE (z = +L/2) ── */}
-          {/* Door frame (white) */}
-          <mesh position={[W * 0.18, H * 0.44, L / 2 + 0.025]} castShadow>
-            <boxGeometry args={[1.1, 2.28, 0.05]} />
-            <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
-          </mesh>
-          {/* Door panel (dark walnut wood) */}
-          <mesh position={[W * 0.18, H * 0.44, L / 2 + 0.065]}>
-            <boxGeometry args={[0.92, 2.08, 0.04]} />
-            <meshStandardMaterial color="#4a2910" roughness={0.88} />
-          </mesh>
-          {/* Brass door handle */}
-          <mesh position={[W * 0.18 - 0.3, H * 0.44, L / 2 + 0.1]}>
-            <sphereGeometry args={[0.048, 10, 10]} />
-            <meshStandardMaterial color="#c8920a" roughness={0.15} metalness={0.92} />
-          </mesh>
-          {/* Concrete doorstep */}
-          <mesh position={[W * 0.18, -0.02, L / 2 + 0.24]} receiveShadow>
-            <boxGeometry args={[1.38, 0.1, 0.52]} />
-            <meshStandardMaterial color="#999999" roughness={0.92} />
-          </mesh>
+          {/* Dynamic Doors */}
+          {rectDoorSlots.map((d, idx) => (
+            <SingleDoor key={`rect-door-${idx}`} position={d.pos} rotation={d.rot} scale={1} handleSide={idx % 2 === 0 ? 'left' : 'right'} />
+          ))}
 
-          {/* Front left window — white frame */}
-          <mesh position={[-W * 0.26, H * 0.58, L / 2 + 0.025]}>
-            <boxGeometry args={[1.14, 1.14, 0.05]} />
-            <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
-          </mesh>
-          {/* Front left window — glass */}
-          <mesh position={[-W * 0.26, H * 0.58, L / 2 + 0.062]}>
-            <boxGeometry args={[0.94, 0.94, 0.04]} />
-            <meshStandardMaterial color="#a8d8ea" transparent opacity={0.72} roughness={0.06} metalness={0.1} />
-          </mesh>
-          {/* Mullion horizontal */}
-          <mesh position={[-W * 0.26, H * 0.58, L / 2 + 0.075]}>
-            <boxGeometry args={[0.94, 0.04, 0.025]} />
-            <meshStandardMaterial color="#e0e0e0" roughness={0.4} />
-          </mesh>
-          {/* Mullion vertical */}
-          <mesh position={[-W * 0.26, H * 0.58, L / 2 + 0.075]}>
-            <boxGeometry args={[0.04, 0.94, 0.025]} />
-            <meshStandardMaterial color="#e0e0e0" roughness={0.4} />
-          </mesh>
+          {/* Dynamic Windows */}
+          {rectWindowSlots.map((w, idx) => (
+            <SingleWindow key={`rect-win-${idx}`} position={w.pos} rotation={w.rot} scale={winScale} />
+          ))}
 
-          {/* ── LEFT SIDE WALL (x = -W/2) ── */}
-          {/* Frame */}
-          <mesh position={[-W / 2 - 0.025, H * 0.58, -L * 0.05]}>
-            <boxGeometry args={[0.05, 1.14, 1.14]} />
-            <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
-          </mesh>
-          {/* Glass */}
-          <mesh position={[-W / 2 - 0.062, H * 0.58, -L * 0.05]}>
-            <boxGeometry args={[0.04, 0.94, 0.94]} />
-            <meshStandardMaterial color="#a8d8ea" transparent opacity={0.72} roughness={0.06} metalness={0.1} />
-          </mesh>
-
-          {/* ── RIGHT SIDE WALL (x = +W/2) ── */}
-          {/* Frame */}
-          <mesh position={[W / 2 + 0.025, H * 0.58, -L * 0.05]}>
-            <boxGeometry args={[0.05, 1.14, 1.14]} />
-            <meshStandardMaterial color="#f3f3f3" roughness={0.55} />
-          </mesh>
-          {/* Glass */}
-          <mesh position={[W / 2 + 0.062, H * 0.58, -L * 0.05]}>
-            <boxGeometry args={[0.04, 0.94, 0.94]} />
-            <meshStandardMaterial color="#a8d8ea" transparent opacity={0.72} roughness={0.06} metalness={0.1} />
-          </mesh>
-
-          {/* ── DECORATIVE BUSHES ── */}
+          {/* Decorative bushes */}
           <mesh position={[-W * 0.38, 0.32, L / 2 + 0.28]} castShadow>
             <sphereGeometry args={[0.46, 9, 9]} />
             <meshStandardMaterial color="#2e7d32" roughness={1.0} />
@@ -301,18 +379,41 @@ function ShelterMesh({ shape = 'rectangle', dimensions = {}, design = {}, openin
           </mesh>
 
           <Html position={[0, H + ridgeAboveWall + 0.85, 0]} center>
-            <div className="bg-slate-900/85 text-white text-[10px] px-2 py-0.5 rounded shadow font-mono whitespace-nowrap">
-              Rectangle: {L.toFixed(1)}m × {W.toFixed(1)}m × {H.toFixed(1)}m
+            <div className="bg-slate-900/90 text-white text-[10px] px-2.5 py-1 rounded shadow-lg font-mono whitespace-nowrap border border-slate-700/60 flex items-center gap-2">
+              <span className="font-bold capitalize">{normShape}</span>
+              <span className="text-slate-400">|</span>
+              <span>{L.toFixed(1)}m × {W.toFixed(1)}m × {H.toFixed(1)}m</span>
+              <span className="text-slate-400">|</span>
+              <span className="text-amber-300 font-semibold">🚪 {doorCount} {doorCount === 1 ? 'Door' : 'Doors'}</span>
+              <span className="text-sky-300 font-semibold">🪟 {windowCount} {windowCount === 1 ? 'Window' : 'Windows'}</span>
             </div>
           </Html>
         </group>
       )}
 
-      {/* ─── 2. DOME (Spherical Cap) ─── */}
+      {/* ─── 2. REALISTIC DOME SHELTER ─── */}
       {normShape === 'dome' && (
         <group>
-          {/* Spherical Cap Shell */}
-          <mesh position={[0, 0, 0]} castShadow receiveShadow>
+          {/* Green grass ground patch */}
+          <mesh position={[0, -0.18, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <circleGeometry args={[R + 4.5, 48]} />
+            <meshStandardMaterial color="#567a3c" roughness={1.0} metalness={0.0} />
+          </mesh>
+
+          {/* Concrete circular foundation */}
+          <mesh position={[0, -0.07, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow castShadow>
+            <circleGeometry args={[R + 0.25, 48]} />
+            <meshStandardMaterial color="#999999" roughness={0.95} />
+          </mesh>
+
+          {/* Low cylindrical ring wall (base drum) */}
+          <mesh position={[0, 0.65, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[R, R, 1.3, 48, 1, true]} />
+            <meshStandardMaterial color={thermalHourData ? envelopeColor : '#d4c5a0'} roughness={0.85} side={THREE.DoubleSide} />
+          </mesh>
+
+          {/* Spherical dome cap shell — sits on top of ring wall */}
+          <mesh position={[0, 1.3, 0]} castShadow receiveShadow>
             <sphereGeometry
               args={[
                 R,
@@ -324,106 +425,298 @@ function ShelterMesh({ shape = 'rectangle', dimensions = {}, design = {}, openin
                 Math.min(Math.PI / 2, (domeH / R) * (Math.PI / 2))
               ]}
             />
-            <meshStandardMaterial color={envelopeColor} roughness={0.5} metalness={0.15} side={THREE.DoubleSide} />
+            <meshStandardMaterial
+              color={thermalHourData ? roofColor : '#e8e0d0'}
+              roughness={0.45}
+              metalness={0.05}
+              side={THREE.DoubleSide}
+            />
           </mesh>
 
-          {/* Base Floor Plate */}
-          <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          {/* Interior floor disc */}
+          <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
             <circleGeometry args={[R, 48]} />
-            <meshStandardMaterial color="#475569" roughness={0.9} />
+            <meshStandardMaterial color="#7a6a55" roughness={0.9} />
           </mesh>
 
-          {/* South Glazing Window */}
-          <mesh position={[0, domeH * 0.45, R * 0.85]} rotation={[0.4, 0, 0]}>
-            <boxGeometry args={[Math.min(R * 1.2, Math.sqrt(windowArea)), 0.9, 0.05]} />
-            <meshStandardMaterial color="#38bdf8" transparent opacity={0.8} />
+          {/* Arched glazing strip (clerestory band) — only if windows are configured */}
+          {windowCount > 0 && (
+            <mesh position={[0, 1.3, 0]} rotation={[0, 0, 0]}>
+              <torusGeometry args={[R * 0.98, 0.18, 8, 48, Math.min(Math.PI * 2, Math.PI * 0.4 * windowCount)]} />
+              <meshStandardMaterial color="#a8d8ea" transparent opacity={0.65} roughness={0.05} metalness={0.1} />
+            </mesh>
+          )}
+
+          {/* Dynamic Dome Doors (positioned around circular drum) */}
+          {Array.from({ length: doorCount }).map((_, idx) => {
+            const angle = (idx * (Math.PI * 2 / Math.max(1, doorCount)));
+            const dx = Math.sin(angle) * (R * 0.98);
+            const dz = Math.cos(angle) * (R * 0.98);
+            return (
+              <SingleDoor
+                key={`dome-door-${idx}`}
+                position={[dx, 1.05, dz]}
+                rotation={[0, angle, 0]}
+                scale={0.95}
+              />
+            );
+          })}
+
+          {/* Dynamic Dome Side Port Windows */}
+          {Array.from({ length: windowCount }).map((_, idx) => {
+            // Offset angles between doors
+            const angle = (idx + 0.5) * (Math.PI * 2 / Math.max(1, windowCount));
+            const wx = Math.sin(angle) * (R * 0.98);
+            const wz = Math.cos(angle) * (R * 0.98);
+            return (
+              <SingleWindow
+                key={`dome-win-${idx}`}
+                position={[wx, 0.7, wz]}
+                rotation={[0, angle, 0]}
+                scale={winScale * 0.85}
+              />
+            );
+          })}
+
+          {/* Decorative bushes around base */}
+          <mesh position={[R * 0.8, 0.3, -R * 0.65]} castShadow>
+            <sphereGeometry args={[0.42, 9, 9]} />
+            <meshStandardMaterial color="#2e7d32" roughness={1.0} />
+          </mesh>
+          <mesh position={[-R * 0.85, 0.25, -R * 0.6]} castShadow>
+            <sphereGeometry args={[0.35, 8, 8]} />
+            <meshStandardMaterial color="#388e3c" roughness={1.0} />
+          </mesh>
+          <mesh position={[R * 0.55, 0.22, R * 0.8]} castShadow>
+            <sphereGeometry args={[0.3, 8, 8]} />
+            <meshStandardMaterial color="#33691e" roughness={1.0} />
+          </mesh>
+          <mesh position={[-R * 0.5, 0.2, R * 0.82]} castShadow>
+            <sphereGeometry args={[0.28, 8, 8]} />
+            <meshStandardMaterial color="#2e7d32" roughness={1.0} />
           </mesh>
 
-          {/* Flush Entrance Portal */}
-          <mesh position={[0, 0.9, R * 0.96]}>
-            <boxGeometry args={[0.85, 1.8, 0.1]} />
-            <meshStandardMaterial color="#78350f" roughness={0.8} />
-          </mesh>
-
-          <Html position={[0, domeH + 1.0, 0]} center>
-            <div className="bg-slate-900/85 text-white text-[10px] px-2 py-0.5 rounded shadow font-mono whitespace-nowrap">
-              Dome: Radius {R.toFixed(1)}m | Peak {domeH.toFixed(1)}m
+          <Html position={[0, domeH + 1.3 + 1.0, 0]} center>
+            <div className="bg-slate-900/90 text-white text-[10px] px-2.5 py-1 rounded shadow-lg font-mono whitespace-nowrap border border-slate-700/60 flex items-center gap-2">
+              <span className="font-bold capitalize">Dome</span>
+              <span className="text-slate-400">|</span>
+              <span>Radius {R.toFixed(1)}m | Peak {(domeH + 1.3).toFixed(1)}m</span>
+              <span className="text-slate-400">|</span>
+              <span className="text-amber-300 font-semibold">🚪 {doorCount} {doorCount === 1 ? 'Door' : 'Doors'}</span>
+              <span className="text-sky-300 font-semibold">🪟 {windowCount} {windowCount === 1 ? 'Window' : 'Windows'}</span>
             </div>
           </Html>
         </group>
       )}
 
-      {/* ─── 3. A-FRAME (True Triangular Prism) ─── */}
+      {/* ─── 3. REALISTIC A-FRAME SHELTER ─── */}
       {(normShape === 'a-frame' || normShape === 'aframe') && (
         <group>
-          {/* Triangular Prism Geometry */}
+          {/* Green grass ground patch */}
+          <mesh position={[0, -0.18, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[W + 8, L + 8]} />
+            <meshStandardMaterial color="#567a3c" roughness={1.0} metalness={0.0} />
+          </mesh>
+
+          {/* Concrete base platform */}
+          <mesh position={[0, -0.07, 0]} castShadow receiveShadow>
+            <boxGeometry args={[W + 0.4, 0.14, L + 0.4]} />
+            <meshStandardMaterial color="#999999" roughness={0.95} />
+          </mesh>
+
+          {/* A-Frame main structure — dark wood cladding */}
           <mesh geometry={aframeGeometry} castShadow receiveShadow>
-            <meshStandardMaterial color={roofColor} roughness={0.5} side={THREE.DoubleSide} />
+            <meshStandardMaterial
+              color={thermalHourData ? roofColor : '#6b4c2a'}
+              roughness={0.82}
+              metalness={0.0}
+              side={THREE.DoubleSide}
+            />
           </mesh>
 
-          {/* Front Entrance Door */}
-          <mesh position={[0, 0.9, -L / 2 - 0.02]}>
-            <boxGeometry args={[0.85, 1.8, 0.04]} />
-            <meshStandardMaterial color="#78350f" roughness={0.8} />
+          {/* Lighter inner wall tint (contrasting lower section) */}
+          <mesh position={[0, 0.7, 0]} castShadow>
+            <boxGeometry args={[W * 0.95, 1.4, L + 0.01]} />
+            <meshStandardMaterial color={thermalHourData ? envelopeColor : '#c4a882'} roughness={0.88} />
           </mesh>
 
-          {/* Front Glazing Window */}
-          <mesh position={[0, ridgeH * 0.55, -L / 2 - 0.02]}>
-            <boxGeometry args={[Math.min(W * 0.5, Math.sqrt(windowArea)), 0.9, 0.04]} />
-            <meshStandardMaterial color="#38bdf8" transparent opacity={0.8} />
+          {/* Dynamic A-Frame Doors */}
+          {doorCount >= 1 && (
+            <SingleDoor position={[0, 1.0, -L / 2]} rotation={[0, Math.PI, 0]} scale={0.95} />
+          )}
+          {doorCount >= 2 && (
+            <SingleDoor position={[0, 1.0, L / 2]} rotation={[0, 0, 0]} scale={0.95} />
+          )}
+          {doorCount >= 3 && (
+            <SingleDoor position={[-W * 0.32, 1.0, -L / 2]} rotation={[0, Math.PI, 0]} scale={0.85} />
+          )}
+          {doorCount >= 4 && (
+            <SingleDoor position={[W * 0.32, 1.0, -L / 2]} rotation={[0, Math.PI, 0]} scale={0.85} />
+          )}
+
+          {/* Dynamic A-Frame Windows */}
+          {windowCount >= 1 && (
+            <SingleWindow position={[0, ridgeH * 0.62, -L / 2]} rotation={[0, Math.PI, 0]} scale={winScale * 0.9} mullions={false} />
+          )}
+          {windowCount >= 2 && (
+            <SingleWindow position={[0, ridgeH * 0.55, L / 2]} rotation={[0, 0, 0]} scale={winScale * 0.85} mullions={false} />
+          )}
+          {windowCount >= 3 && (
+            <SingleWindow position={[-W * 0.28, 0.7, -L / 2]} rotation={[0, Math.PI, 0]} scale={winScale * 0.75} />
+          )}
+          {windowCount >= 4 && (
+            <SingleWindow position={[W * 0.28, 0.7, -L / 2]} rotation={[0, Math.PI, 0]} scale={winScale * 0.75} />
+          )}
+          {windowCount >= 5 && (
+            <SingleWindow position={[-W * 0.28, 0.7, L / 2]} rotation={[0, 0, 0]} scale={winScale * 0.75} />
+          )}
+          {windowCount >= 6 && (
+            <SingleWindow position={[W * 0.28, 0.7, L / 2]} rotation={[0, 0, 0]} scale={winScale * 0.75} />
+          )}
+
+          {/* Side bushes */}
+          <mesh position={[-W * 0.38, 0.28, -L / 2 + 0.5]} castShadow>
+            <sphereGeometry args={[0.4, 9, 9]} />
+            <meshStandardMaterial color="#2e7d32" roughness={1.0} />
+          </mesh>
+          <mesh position={[W * 0.38, 0.22, -L / 2 + 0.4]} castShadow>
+            <sphereGeometry args={[0.32, 8, 8]} />
+            <meshStandardMaterial color="#388e3c" roughness={1.0} />
+          </mesh>
+          <mesh position={[W * 0.35, 0.2, L / 2 - 0.5]} castShadow>
+            <sphereGeometry args={[0.3, 8, 8]} />
+            <meshStandardMaterial color="#33691e" roughness={1.0} />
           </mesh>
 
-          <Html position={[0, ridgeH + 0.8, 0]} center>
-            <div className="bg-slate-900/85 text-white text-[10px] px-2 py-0.5 rounded shadow font-mono whitespace-nowrap">
-              A-Frame: {L.toFixed(1)}m × {W.toFixed(1)}m × {ridgeH.toFixed(1)}m
+          <Html position={[0, ridgeH + 1.0, 0]} center>
+            <div className="bg-slate-900/90 text-white text-[10px] px-2.5 py-1 rounded shadow-lg font-mono whitespace-nowrap border border-slate-700/60 flex items-center gap-2">
+              <span className="font-bold capitalize">A-Frame</span>
+              <span className="text-slate-400">|</span>
+              <span>{L.toFixed(1)}m × {W.toFixed(1)}m × {ridgeH.toFixed(1)}m</span>
+              <span className="text-slate-400">|</span>
+              <span className="text-amber-300 font-semibold">🚪 {doorCount} {doorCount === 1 ? 'Door' : 'Doors'}</span>
+              <span className="text-sky-300 font-semibold">🪟 {windowCount} {windowCount === 1 ? 'Window' : 'Windows'}</span>
             </div>
           </Html>
         </group>
       )}
 
-      {/* ─── 4. QUONSET (True Semi-Cylindrical Arch) ─── */}
+      {/* ─── 4. REALISTIC QUONSET / ARCH SHELTER ─── */}
       {normShape === 'quonset' && (
         <group>
-          {/* Continuous Semi-Cylindrical Shell */}
+          {/* Green grass ground patch */}
+          <mesh position={[0, -0.18, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[W + 8, L + 8]} />
+            <meshStandardMaterial color="#567a3c" roughness={1.0} metalness={0.0} />
+          </mesh>
+
+          {/* Concrete pad */}
+          <mesh position={[0, -0.07, 0]} castShadow receiveShadow>
+            <boxGeometry args={[W + 0.4, 0.14, L + 0.4]} />
+            <meshStandardMaterial color="#999999" roughness={0.95} />
+          </mesh>
+
+          {/* Continuous semi-cylindrical corrugated steel shell */}
           <mesh geometry={quonsetShellGeometry} castShadow receiveShadow>
-            <meshStandardMaterial color={roofColor} roughness={0.4} metalness={0.2} side={THREE.DoubleSide} />
+            <meshStandardMaterial
+              color={thermalHourData ? roofColor : '#8fa8a8'}
+              roughness={0.38}
+              metalness={0.55}
+              side={THREE.DoubleSide}
+            />
           </mesh>
 
-          {/* Front End-Wall */}
+          {/* Front end-wall (sand/khaki military color) */}
           <mesh geometry={quonsetEndGeometry} position={[0, 0, -L / 2]} rotation={[0, Math.PI, 0]} castShadow receiveShadow>
-            <meshStandardMaterial color={envelopeColor} roughness={0.6} side={THREE.DoubleSide} />
+            <meshStandardMaterial
+              color={thermalHourData ? envelopeColor : '#c8b88a'}
+              roughness={0.82}
+              side={THREE.DoubleSide}
+            />
           </mesh>
 
-          {/* Rear End-Wall */}
+          {/* Rear end-wall */}
           <mesh geometry={quonsetEndGeometry} position={[0, 0, L / 2]} castShadow receiveShadow>
-            <meshStandardMaterial color={envelopeColor} roughness={0.6} side={THREE.DoubleSide} />
+            <meshStandardMaterial
+              color={thermalHourData ? envelopeColor : '#c8b88a'}
+              roughness={0.82}
+              side={THREE.DoubleSide}
+            />
           </mesh>
 
-          {/* Base Floor Plate */}
-          <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          {/* Interior floor */}
+          <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
             <planeGeometry args={[W, L]} />
-            <meshStandardMaterial color="#475569" roughness={0.9} />
+            <meshStandardMaterial color="#7a6a55" roughness={0.9} />
           </mesh>
 
-          {/* Front Entrance Door */}
-          <mesh position={[0, 0.9, -L / 2 - 0.02]}>
-            <boxGeometry args={[0.85, 1.8, 0.04]} />
-            <meshStandardMaterial color="#78350f" roughness={0.8} />
+          {/* Dynamic Quonset Doors */}
+          {doorCount >= 1 && (
+            <SingleDoor position={[0, 1.05, -L / 2]} rotation={[0, Math.PI, 0]} scale={0.95} />
+          )}
+          {doorCount >= 2 && (
+            <SingleDoor position={[0, 1.05, L / 2]} rotation={[0, 0, 0]} scale={0.95} />
+          )}
+          {doorCount >= 3 && (
+            <SingleDoor position={[-W * 0.32, 0.95, -L / 2]} rotation={[0, Math.PI, 0]} scale={0.85} />
+          )}
+          {doorCount >= 4 && (
+            <SingleDoor position={[W * 0.32, 0.95, -L / 2]} rotation={[0, Math.PI, 0]} scale={0.85} />
+          )}
+
+          {/* Dynamic Quonset Windows */}
+          {windowCount >= 1 && (
+            <SingleWindow position={[-W * 0.3, (W / 2) * 0.48, -L / 2]} rotation={[0, Math.PI, 0]} scale={winScale * 0.85} />
+          )}
+          {windowCount >= 2 && (
+            <SingleWindow position={[W * 0.3, (W / 2) * 0.48, -L / 2]} rotation={[0, Math.PI, 0]} scale={winScale * 0.85} />
+          )}
+          {windowCount >= 3 && (
+            <SingleWindow position={[-W * 0.3, (W / 2) * 0.48, L / 2]} rotation={[0, 0, 0]} scale={winScale * 0.85} />
+          )}
+          {windowCount >= 4 && (
+            <SingleWindow position={[W * 0.3, (W / 2) * 0.48, L / 2]} rotation={[0, 0, 0]} scale={winScale * 0.85} />
+          )}
+          {windowCount >= 5 && (
+            <SingleWindow position={[0, (W / 2) * 0.78, -L / 2]} rotation={[0, Math.PI, 0]} scale={winScale * 0.75} mullions={false} />
+          )}
+          {windowCount >= 6 && (
+            <SingleWindow position={[0, (W / 2) * 0.78, L / 2]} rotation={[0, 0, 0]} scale={winScale * 0.75} mullions={false} />
+          )}
+
+          {/* Sandbag-style ground reinforcement strips along sides */}
+          <mesh position={[-W / 2 - 0.12, -0.02, 0]} castShadow>
+            <boxGeometry args={[0.22, 0.18, L * 0.85]} />
+            <meshStandardMaterial color="#a09060" roughness={1.0} />
+          </mesh>
+          <mesh position={[W / 2 + 0.12, -0.02, 0]} castShadow>
+            <boxGeometry args={[0.22, 0.18, L * 0.85]} />
+            <meshStandardMaterial color="#a09060" roughness={1.0} />
           </mesh>
 
-          {/* Front Glazing Window */}
-          <mesh position={[0, (W / 2) * 0.55, -L / 2 - 0.02]}>
-            <boxGeometry args={[Math.min((W / 2) * 1.1, Math.sqrt(windowArea)), 0.8, 0.04]} />
-            <meshStandardMaterial color="#38bdf8" transparent opacity={0.8} />
+          {/* Side bushes */}
+          <mesh position={[-W * 0.45, 0.28, -L / 2 + 0.6]} castShadow>
+            <sphereGeometry args={[0.38, 9, 9]} />
+            <meshStandardMaterial color="#2e7d32" roughness={1.0} />
+          </mesh>
+          <mesh position={[W * 0.45, 0.22, -L / 2 + 0.5]} castShadow>
+            <sphereGeometry args={[0.3, 8, 8]} />
+            <meshStandardMaterial color="#388e3c" roughness={1.0} />
           </mesh>
 
-          <Html position={[0, (W / 2) + 0.8, 0]} center>
-            <div className="bg-slate-900/85 text-white text-[10px] px-2 py-0.5 rounded shadow font-mono whitespace-nowrap">
-              Quonset: {L.toFixed(1)}m length | {W.toFixed(1)}m arch span
+          <Html position={[0, (W / 2) + 1.2, 0]} center>
+            <div className="bg-slate-900/90 text-white text-[10px] px-2.5 py-1 rounded shadow-lg font-mono whitespace-nowrap border border-slate-700/60 flex items-center gap-2">
+              <span className="font-bold capitalize">Quonset</span>
+              <span className="text-slate-400">|</span>
+              <span>{L.toFixed(1)}m length | {W.toFixed(1)}m arch span</span>
+              <span className="text-slate-400">|</span>
+              <span className="text-amber-300 font-semibold">🚪 {doorCount} {doorCount === 1 ? 'Door' : 'Doors'}</span>
+              <span className="text-sky-300 font-semibold">🪟 {windowCount} {windowCount === 1 ? 'Window' : 'Windows'}</span>
             </div>
           </Html>
         </group>
       )}
+
     </group>
   );
 }
@@ -485,6 +778,8 @@ export default function Shelter3DViewer({
     Number(activeDimensions.radius ? activeDimensions.radius * 2 : 4),
     Number(activeDimensions.height || activeDimensions.ridgeHeight || 3)
   );
+  const activeDoorCount = Math.max(0, Number(openings?.doorCount !== undefined ? openings.doorCount : (openings?.doors !== undefined ? openings.doors : 1)));
+  const activeWindowCount = Math.max(0, Number(openings?.windowCount !== undefined ? openings.windowCount : (openings?.windows !== undefined ? openings.windows : 2)));
 
   return (
     <div
@@ -492,6 +787,18 @@ export default function Shelter3DViewer({
       className="relative w-full bg-slate-950/5 rounded-xl overflow-hidden border border-slate-200 shadow-inner"
     >
       {/* Floating Header Controls */}
+      <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5">
+        <div className="bg-white/95 backdrop-blur border border-slate-200 px-2.5 py-1 rounded-lg text-xs shadow-sm flex items-center gap-2">
+          <span className="font-semibold text-slate-700">
+            🚪 Doors: <span className="text-amber-700 font-bold">{activeDoorCount}</span>
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="font-semibold text-slate-700">
+            🪟 Windows: <span className="text-sky-700 font-bold">{activeWindowCount}</span>
+          </span>
+        </div>
+      </div>
+
       <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-2">
         {thermalHourData && (
           <div className="bg-white/95 backdrop-blur border border-slate-200 px-2.5 py-1 rounded-lg text-xs shadow-sm flex items-center gap-2">
