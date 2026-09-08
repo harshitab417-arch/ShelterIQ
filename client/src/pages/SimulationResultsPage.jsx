@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import api from '../services/api';
 import {
   Thermometer,
@@ -36,7 +36,9 @@ import {
   Legend,
   CartesianGrid,
   Cell,
-  ReferenceArea
+  ReferenceArea,
+  ReferenceLine,
+  ReferenceDot
 } from 'recharts';
 import Shelter3DViewer from '../three/Shelter3DViewer';
 
@@ -49,6 +51,7 @@ export default function SimulationResultsPage({ simulation, onBack }) {
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [comparisonData, setComparisonData] = useState(null);
+  const comparisonRef = useRef(null);
 
   if (!simulation || !simulation.results) {
     return (
@@ -97,25 +100,49 @@ export default function SimulationResultsPage({ simulation, onBack }) {
   const geometry = simulation.geometry || simulation.shelter?.calculatedGeometry || {};
   const shape = (simulation.shape || simulation.shelter?.shape || 'rectangle').toLowerCase();
 
+  // Ensure time series data is exactly 24 hours (00:00 to 23:00)
+  const timeSeries24 = useMemo(() => {
+    if (!timeSeries || timeSeries.length === 0) return [];
+    return timeSeries.slice(0, 24).map((pt, idx) => {
+      let timeLabel = '';
+      if (typeof pt.timestamp === 'string' && pt.timestamp.includes('T')) {
+        timeLabel = pt.timestamp.split('T')[1].substr(0, 5);
+      } else if (typeof pt.timestamp === 'string' && pt.timestamp.includes(' ')) {
+        timeLabel = pt.timestamp.split(' ')[1].substr(0, 5);
+      } else if (typeof pt.timestamp === 'string') {
+        timeLabel = pt.timestamp.substr(0, 5);
+      } else {
+        timeLabel = `${String(idx).padStart(2, '0')}:00`;
+      }
+      if (!timeLabel || timeLabel.length < 3) {
+        timeLabel = `${String(idx).padStart(2, '0')}:00`;
+      }
+      return {
+        ...pt,
+        displayTime: timeLabel
+      };
+    });
+  }, [timeSeries]);
+
   // Active time-series data point for selected hour
   const currentHourData = useMemo(() => {
-    if (timeSeries.length === 0) return null;
-    return timeSeries[selectedHour % timeSeries.length];
-  }, [timeSeries, selectedHour]);
+    if (timeSeries24.length === 0) return null;
+    return timeSeries24[selectedHour % timeSeries24.length];
+  }, [timeSeries24, selectedHour]);
 
-  // Dynamic Y-axis temperature bounds from actual data
+  // Dynamic Y-axis temperature bounds from actual 24h data
   const tempDomain = useMemo(() => {
-    if (timeSeries.length === 0) return [-25, 30];
+    if (timeSeries24.length === 0) return [-25, 30];
     let minT = Infinity;
     let maxT = -Infinity;
-    timeSeries.forEach(p => {
+    timeSeries24.forEach(p => {
       if (p.indoorTemperature < minT) minT = p.indoorTemperature;
       if (p.ambientTemperature < minT) minT = p.ambientTemperature;
       if (p.indoorTemperature > maxT) maxT = p.indoorTemperature;
       if (p.ambientTemperature > maxT) maxT = p.ambientTemperature;
     });
     return [Math.floor(minT - 3), Math.ceil(maxT + 3)];
-  }, [timeSeries]);
+  }, [timeSeries24]);
 
   // Heat loss breakdown data formatted for bar chart
   const heatLossBreakdownData = useMemo(() => {
@@ -162,21 +189,34 @@ export default function SimulationResultsPage({ simulation, onBack }) {
   const handleGeneratePDF = async () => {
     setReportLoading(true);
     setReportMsg('');
+    const win = window.open('about:blank', '_blank');
     try {
       const res = await api.post('/reports/generate', { simulation });
       setReportMsg('PDF Report generated successfully!');
       if (res.data.downloadUrl) {
-        window.open(res.data.downloadUrl, '_blank');
+        if (win) win.location.href = res.data.downloadUrl;
+        else window.open(res.data.downloadUrl, '_blank');
+      } else {
+        if (win) win.close();
       }
     } catch (err) {
+      if (win) win.close();
       setReportMsg('Failed to generate PDF report.');
     } finally {
       setReportLoading(false);
     }
   };
 
+  const scrollToComparison = () => {
+    setTimeout(() => {
+      comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   const handleRunShapeComparison = async () => {
     setShowComparison(true);
+    scrollToComparison();
+
     if (comparisonData) return;
 
     setComparisonLoading(true);
@@ -189,6 +229,7 @@ export default function SimulationResultsPage({ simulation, onBack }) {
         comfortSettings: simulation.comfortSettings
       });
       setComparisonData(res.data);
+      scrollToComparison();
     } catch (err) {
       console.error('Failed to run shape comparison:', err);
     } finally {
@@ -454,14 +495,59 @@ export default function SimulationResultsPage({ simulation, onBack }) {
         {/* Main Line Chart with Comfort Band */}
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={timeSeries}>
+            <LineChart
+              data={timeSeries24}
+              onMouseMove={(e) => {
+                if (e && e.activeTooltipIndex !== undefined && e.activeTooltipIndex !== null) {
+                  setSelectedHour(e.activeTooltipIndex);
+                }
+              }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               {/* Comfort Zone Reference Area */}
               <ReferenceArea y1={18} y2={24} fill="#10b981" fillOpacity={0.08} />
-              <XAxis dataKey="timestamp" stroke="#94a3b8" fontSize={10} tickFormatter={(t) => t.substr(11, 5)} />
+              <XAxis dataKey="displayTime" stroke="#94a3b8" fontSize={10} interval={1} />
               <YAxis stroke="#94a3b8" fontSize={10} unit="°C" domain={tempDomain} />
               <Tooltip />
               <Legend />
+
+              {/* Highlight Pointer for Selected Hour */}
+              {currentHourData && (
+                <>
+                  <ReferenceLine
+                    x={currentHourData.displayTime}
+                    stroke="#0284c7"
+                    strokeWidth={2}
+                    strokeDasharray="3 3"
+                    label={{
+                      value: currentHourData.displayTime,
+                      position: 'top',
+                      fill: '#0284c7',
+                      fontSize: 10,
+                      fontWeight: 'bold'
+                    }}
+                  />
+                  <ReferenceDot
+                    x={currentHourData.displayTime}
+                    y={currentHourData.indoorTemperature}
+                    r={6}
+                    fill="#0284c7"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                    isFront={true}
+                  />
+                  <ReferenceDot
+                    x={currentHourData.displayTime}
+                    y={currentHourData.ambientTemperature}
+                    r={5}
+                    fill="#64748b"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                    isFront={true}
+                  />
+                </>
+              )}
+
               <Line type="monotone" dataKey="indoorTemperature" name="Indoor Temp (°C)" stroke="#0284c7" strokeWidth={3} dot={false} />
               <Line type="monotone" dataKey="ambientTemperature" name="Outdoor Ambient (°C)" stroke="#94a3b8" strokeWidth={2} strokeDasharray="4 4" dot={false} />
             </LineChart>
@@ -603,7 +689,7 @@ export default function SimulationResultsPage({ simulation, onBack }) {
 
       {/* ─── 7. FAIR SHAPE COMPARISON MODAL / DRAWER ─── */}
       {showComparison && (
-        <div className="card-clean border-2 border-sky-500 space-y-4 bg-sky-50/20">
+        <div ref={comparisonRef} className="card-clean border-2 border-sky-500 space-y-4 bg-sky-50/20 scroll-mt-6">
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">

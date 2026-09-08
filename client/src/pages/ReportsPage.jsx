@@ -20,12 +20,17 @@ export default function ReportsPage() {
 
   const handleDownloadPDF = async (sim) => {
     setGeneratingId(sim._id);
+    const win = window.open('about:blank', '_blank');
     try {
       const res = await api.post('/reports/generate', { simulation: sim });
       if (res.data.downloadUrl) {
-        window.open(res.data.downloadUrl, '_blank');
+        if (win) win.location.href = res.data.downloadUrl;
+        else window.open(res.data.downloadUrl, '_blank');
+      } else {
+        if (win) win.close();
       }
     } catch (err) {
+      if (win) win.close();
       console.error(err);
     } finally {
       setGeneratingId(null);
@@ -49,7 +54,7 @@ export default function ReportsPage() {
               <th className="p-3.5">Shelter Model</th>
               <th className="p-3.5">Comfort Index</th>
               <th className="p-3.5">Heat Loss</th>
-              <th className="p-3.5 text-right">PDF Download</th>
+              <th className="p-3.5 text-right">PDF Report</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -67,8 +72,8 @@ export default function ReportsPage() {
                     disabled={generatingId === sim._id}
                     className="btn-primary py-1 px-3 text-xs"
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    {generatingId === sim._id ? 'Generating PDF...' : 'Download PDF'}
+                    <FileText className="w-3.5 h-3.5" />
+                    {generatingId === sim._id ? 'Generating PDF...' : 'View PDF'}
                   </button>
                 </td>
               </tr>
