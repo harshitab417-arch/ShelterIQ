@@ -56,7 +56,9 @@ router.get('/download/:filename', (req, res) => {
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Report file not found.' });
     }
-    res.download(filePath);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${req.params.filename}"`);
+    res.sendFile(filePath);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

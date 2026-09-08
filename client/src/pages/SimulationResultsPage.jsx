@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import api from '../services/api';
 import {
   Thermometer,
@@ -49,6 +49,7 @@ export default function SimulationResultsPage({ simulation, onBack }) {
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [comparisonData, setComparisonData] = useState(null);
+  const comparisonRef = useRef(null);
 
   if (!simulation || !simulation.results) {
     return (
@@ -162,21 +163,34 @@ export default function SimulationResultsPage({ simulation, onBack }) {
   const handleGeneratePDF = async () => {
     setReportLoading(true);
     setReportMsg('');
+    const win = window.open('about:blank', '_blank');
     try {
       const res = await api.post('/reports/generate', { simulation });
       setReportMsg('PDF Report generated successfully!');
       if (res.data.downloadUrl) {
-        window.open(res.data.downloadUrl, '_blank');
+        if (win) win.location.href = res.data.downloadUrl;
+        else window.open(res.data.downloadUrl, '_blank');
+      } else {
+        if (win) win.close();
       }
     } catch (err) {
+      if (win) win.close();
       setReportMsg('Failed to generate PDF report.');
     } finally {
       setReportLoading(false);
     }
   };
 
+  const scrollToComparison = () => {
+    setTimeout(() => {
+      comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   const handleRunShapeComparison = async () => {
     setShowComparison(true);
+    scrollToComparison();
+
     if (comparisonData) return;
 
     setComparisonLoading(true);
@@ -189,6 +203,7 @@ export default function SimulationResultsPage({ simulation, onBack }) {
         comfortSettings: simulation.comfortSettings
       });
       setComparisonData(res.data);
+      scrollToComparison();
     } catch (err) {
       console.error('Failed to run shape comparison:', err);
     } finally {
@@ -603,7 +618,7 @@ export default function SimulationResultsPage({ simulation, onBack }) {
 
       {/* ─── 7. FAIR SHAPE COMPARISON MODAL / DRAWER ─── */}
       {showComparison && (
-        <div className="card-clean border-2 border-sky-500 space-y-4 bg-sky-50/20">
+        <div ref={comparisonRef} className="card-clean border-2 border-sky-500 space-y-4 bg-sky-50/20 scroll-mt-6">
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
