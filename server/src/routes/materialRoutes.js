@@ -4,15 +4,20 @@ const Material = require('../models/Material');
 const { checkIsFallback } = require('../config/db');
 const memoryStore = require('../config/inMemoryStore');
 
+const { seedMaterials } = require('../scripts/seedData');
+
 // GET /api/materials
 router.get('/', async (req, res) => {
   try {
     if (checkIsFallback()) {
       return res.json(memoryStore.materials);
     }
-    const materials = await Material.find();
-    if (materials.length === 0) {
-      return res.json(memoryStore.materials);
+    let materials = await Material.find();
+    if (materials.length < seedMaterials.length) {
+      for (const sm of seedMaterials) {
+        await Material.updateOne({ name: sm.name }, sm, { upsert: true });
+      }
+      materials = await Material.find();
     }
     res.json(materials);
   } catch (err) {

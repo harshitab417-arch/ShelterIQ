@@ -1,8 +1,36 @@
 /**
  * Optimization Engine - Genetic Algorithm Module
+ * Climate-sensitive fitness with shape prediction
  */
 
 const { runThermalSimulation } = require('../physics/simulationEngine');
+
+/**
+ * Compute climate-adaptive objective weights from climate dataset
+ */
+function getClimateAdaptiveWeights(climateDataset, baseWeights) {
+  const dataPoints = climateDataset?.dataPoints || [];
+  if (dataPoints.length === 0) return baseWeights;
+
+  const temps = dataPoints.map(p => p.ambientTemperature);
+  const avgAmbient = temps.reduce((a, b) => a + b, 0) / temps.length;
+
+  let comfortW = baseWeights.comfortWeight;
+  let heatLossW = baseWeights.heatLossWeight;
+  let solarW = baseWeights.solarGainWeight;
+
+  if (avgAmbient < -15) {
+    heatLossW = 0.55; comfortW = 0.35; solarW = 0.10;
+  } else if (avgAmbient < -5) {
+    heatLossW = 0.45; comfortW = 0.40; solarW = 0.15;
+  } else if (avgAmbient < 10) {
+    heatLossW = 0.35; comfortW = 0.45; solarW = 0.20;
+  } else if (avgAmbient > 25) {
+    heatLossW = 0.15; comfortW = 0.55; solarW = 0.30;
+  }
+
+  return { comfortWeight: comfortW, heatLossWeight: heatLossW, solarGainWeight: solarW };
+}
 
 /**
  * Execute Genetic Algorithm design search
@@ -30,6 +58,17 @@ async function runGeneticAlgorithm({
   const orientations = [90, 135, 180, 225, 270];
   const thicknesses = [0.05, 0.10, 0.15, 0.20, 0.25];
   const windowAreas = [1.5, 2.0, 2.5, 3.5, 4.5];
+  const shapes = ['Rectangular', 'Dome', 'L-Shape', 'Octagonal'];
+
+  // Climate-adaptive weights
+  const adaptiveWeights = getClimateAdaptiveWeights(climateDataset, objectiveWeights);
+
+  // Dynamic normalization factors
+  const dataPoints = climateDataset?.dataPoints || [];
+  const temps = dataPoints.map(p => p.ambientTemperature);
+  const avgAmbient = temps.length > 0 ? temps.reduce((a, b) => a + b, 0) / temps.length : 0;
+  const heatLossNormFactor = Math.max(100, 50 + Math.abs(avgAmbient) * 10);
+  const solarNormFactor = Math.max(20, 50 - Math.abs(avgAmbient) * 0.5);
 
   // Helper to create random chromosome
   const createRandomChromosome = () => ({
@@ -38,8 +77,11 @@ async function runGeneticAlgorithm({
     insMatIdx: Math.floor(Math.random() * insMatList.length),
     orientIdx: Math.floor(Math.random() * orientations.length),
     thickIdx: Math.floor(Math.random() * thicknesses.length),
-    winIdx: Math.floor(Math.random() * windowAreas.length)
+    winIdx: Math.floor(Math.random() * windowAreas.length),
+    shapeIdx: Math.floor(Math.random() * shapes.length)
   });
+
+const { calculateClimateFitness } = require('./gridSearch');
 
   // Evaluate chromosome fitness
   const evaluateChromosome = (chromo) => {
@@ -49,10 +91,11 @@ async function runGeneticAlgorithm({
     const orient = orientations[chromo.orientIdx];
     const thick = thicknesses[chromo.thickIdx];
     const winArea = windowAreas[chromo.winIdx];
+    const shape = shapes[chromo.shapeIdx];
 
     const testShelter = {
       ...baseShelter,
-      design: { ...baseShelter.design, orientation: orient },
+      design: { ...baseShelter.design, orientation: orient, shape },
       openings: { ...baseShelter.openings, windowArea: winArea },
       geometry: { ...baseShelter.geometry, wallThickness: thick + 0.15 },
       materials: {
@@ -64,17 +107,7 @@ async function runGeneticAlgorithm({
     };
 
     const simRes = runThermalSimulation({ shelter: testShelter, climateDataset, comfortSettings });
-    const m = simRes.metrics;
-
-    const comfortScore = m.comfortPercentage;
-    const heatLossPenalty = (m.totalHeatLoss / 200) * 100;
-    const solarScore = (m.totalSolarGain / 50) * 100;
-
-    const fitness = Number((
-      objectiveWeights.comfortWeight * comfortScore -
-      objectiveWeights.heatLossWeight * heatLossPenalty +
-      objectiveWeights.solarGainWeight * solarScore
-    ).toFixed(2));
+    const fitness = calculateClimateFitness(simRes.metrics, testShelter, climateDataset);
 
     return {
       chromosome: chromo,
@@ -87,9 +120,13 @@ async function runGeneticAlgorithm({
         wallMaterialName: wallMat.name,
         roofMaterialName: roofMat.name,
         insulationMaterialName: insMat.name,
+        wallMaterial: wallMat,
+        roofMaterial: roofMat,
+        insulationMaterial: insMat,
         insulationThickness: thick,
         orientation: orient,
-        windowArea: winArea
+        windowArea: winArea,
+        shape
       }
     };
   };
@@ -134,13 +171,16 @@ async function runGeneticAlgorithm({
         insMatIdx: Math.random() > 0.5 ? parentA.insMatIdx : parentB.insMatIdx,
         orientIdx: Math.random() > 0.5 ? parentA.orientIdx : parentB.orientIdx,
         thickIdx: Math.random() > 0.5 ? parentA.thickIdx : parentB.thickIdx,
-        winIdx: Math.random() > 0.5 ? parentA.winIdx : parentB.winIdx
+        winIdx: Math.random() > 0.5 ? parentA.winIdx : parentB.winIdx,
+        shapeIdx: Math.random() > 0.5 ? parentA.shapeIdx : parentB.shapeIdx
       };
 
       // Mutation
       if (Math.random() < mutationRate) child.wallMatIdx = Math.floor(Math.random() * wallMatList.length);
+      if (Math.random() < mutationRate) child.roofMatIdx = Math.floor(Math.random() * roofMatList.length);
       if (Math.random() < mutationRate) child.orientIdx = Math.floor(Math.random() * orientations.length);
       if (Math.random() < mutationRate) child.thickIdx = Math.floor(Math.random() * thicknesses.length);
+      if (Math.random() < mutationRate) child.shapeIdx = Math.floor(Math.random() * shapes.length);
 
       newPop.push(child);
     }

@@ -121,6 +121,79 @@ const seedMaterials = [
     thicknessDefault: 0.20,
     notes: 'Pitched metallic roofing system with underside thermal insulation.',
     isDefault: true
+  },
+  // --- Additional materials for climate-diverse optimization ---
+  {
+    name: 'Autoclaved Aerated Concrete (AAC)',
+    category: 'Wall',
+    thermalConductivity: 0.16,
+    density: 550,
+    specificHeat: 1050,
+    emissivity: 0.90,
+    solarAbsorptivity: 0.55,
+    thicknessDefault: 0.20,
+    notes: 'Lightweight porous concrete block with good insulating properties. Suitable for moderate climates.',
+    isDefault: true
+  },
+  {
+    name: 'Fired Clay Brick',
+    category: 'Wall',
+    thermalConductivity: 0.72,
+    density: 1800,
+    specificHeat: 920,
+    emissivity: 0.93,
+    solarAbsorptivity: 0.68,
+    thicknessDefault: 0.23,
+    notes: 'Traditional kiln-fired clay brick with moderate thermal mass. Common in hot-dry and temperate climates.',
+    isDefault: true
+  },
+  {
+    name: 'Insulated Concrete Form (ICF)',
+    category: 'Wall',
+    thermalConductivity: 0.07,
+    density: 320,
+    specificHeat: 1400,
+    emissivity: 0.88,
+    solarAbsorptivity: 0.50,
+    thicknessDefault: 0.25,
+    notes: 'EPS-insulated concrete form system with extremely low thermal conductivity. Optimal for extreme cold high-altitude environments.',
+    isDefault: true
+  },
+  {
+    name: 'Timber Truss + Thatch Roof',
+    category: 'Roof',
+    thermalConductivity: 0.09,
+    density: 350,
+    specificHeat: 1800,
+    emissivity: 0.92,
+    solarAbsorptivity: 0.60,
+    thicknessDefault: 0.25,
+    notes: 'Natural timber frame with thatch overlay. Excellent insulation in mild and moderate climates.',
+    isDefault: true
+  },
+  {
+    name: 'Sandwich PUF Roof Panel',
+    category: 'Roof',
+    thermalConductivity: 0.024,
+    density: 45,
+    specificHeat: 1400,
+    emissivity: 0.80,
+    solarAbsorptivity: 0.40,
+    thicknessDefault: 0.10,
+    notes: 'Pre-fabricated metal-PUF-metal sandwich panel with lowest thermal conductivity. Best for extreme cold and high-altitude shelters.',
+    isDefault: true
+  },
+  {
+    name: 'Mineral Rock Wool',
+    category: 'Insulation',
+    thermalConductivity: 0.038,
+    density: 100,
+    specificHeat: 840,
+    emissivity: 0.90,
+    solarAbsorptivity: 0.50,
+    thicknessDefault: 0.10,
+    notes: 'Fire-resistant mineral fibre insulation. Good balanced performance for temperate and moderate cold climates.',
+    isDefault: true
   }
 ];
 

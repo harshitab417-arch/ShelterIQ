@@ -60,15 +60,29 @@ export default function SimulationResultsPage({ simulation, onBack }) {
   };
 
   const handleGeneratePDF = async () => {
+    const reportWindow = window.open('', '_blank');
+    if (reportWindow) {
+      reportWindow.document.write('<div style="font-family:sans-serif;padding:40px;text-align:center;color:#0284c7;"><h2>Generating DRDO Thermal Design PDF Report...</h2><p>Compiling thermal metrics and vector graphs...</p></div>');
+    }
     setReportLoading(true);
     setReportMsg('');
     try {
       const res = await api.post('/reports/generate', { simulation });
-      setReportMsg('PDF Report generated successfully!');
-      if (res.data.downloadUrl) {
-        window.open(res.data.downloadUrl, '_blank');
+      const fileUrl = res.data?.viewUrl || res.data?.report?.filePath || (res.data?.report?.filename ? `/uploads/reports/${res.data.report.filename}` : null);
+      if (fileUrl) {
+        const baseUrl = window.location.origin.includes('5173') ? 'http://localhost:5000' : window.location.origin;
+        if (reportWindow) {
+          reportWindow.location.href = `${baseUrl}${fileUrl}`;
+        } else {
+          window.location.href = `${baseUrl}${fileUrl}`;
+        }
+        setReportMsg('PDF Report opened in new tab!');
+      } else if (reportWindow) {
+        reportWindow.close();
       }
     } catch (err) {
+      console.error('Report error:', err);
+      if (reportWindow) reportWindow.close();
       setReportMsg('Failed to generate PDF report.');
     } finally {
       setReportLoading(false);

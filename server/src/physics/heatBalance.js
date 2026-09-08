@@ -8,6 +8,55 @@ const { calculateLongwaveRadiationLoss } = require('./radiation');
 const { calculateSolarGain } = require('./solar');
 
 /**
+ * Compute shape-dependent surface areas for the shelter envelope.
+ * Supports: Rectangular (default), Dome, Octagonal, L-Shape
+ */
+function getShapeAreas(L, W, H, shape) {
+  const shapeLower = (shape || 'Rectangular').toLowerCase();
+
+  if (shapeLower === 'dome') {
+    // Dome modelled as a hemisphere with equivalent floor area = L * W
+    const floorArea = L * W;
+    const radius = Math.sqrt(floorArea / Math.PI);
+    const wallAreaTotal = 2 * Math.PI * radius * radius; // hemisphere curved surface = 2πr²
+    const roofArea = floorArea; // dome roof projected area equals floor
+    return { wallAreaTotal, roofArea, floorArea };
+  }
+
+  if (shapeLower === 'octagonal') {
+    // Regular octagonal prism; side length derived from equivalent floor area ≈ L*W
+    const floorArea = L * W;
+    // Octagon area = 2(1+√2)s² → s = √(A / (2(1+√2)))
+    const s = Math.sqrt(floorArea / (2 * (1 + Math.SQRT2)));
+    const perimeter = 8 * s;
+    const wallAreaTotal = perimeter * H;
+    const roofArea = floorArea;
+    return { wallAreaTotal, roofArea, floorArea };
+  }
+
+  if (shapeLower === 'l-shape') {
+    // L-Shape: two joined rectangles sharing one wall
+    // Main block: L × (W * 0.6), wing: (L * 0.5) × (W * 0.4)
+    const mainL = L;
+    const mainW = W * 0.6;
+    const wingL = L * 0.5;
+    const wingW = W * 0.4;
+    const floorArea = mainL * mainW + wingL * wingW;
+    const roofArea = floorArea;
+    // Perimeter of L-shape (external perimeter only)
+    const perimeter = 2 * mainL + mainW + (mainW - wingW) + wingL + wingW + (mainL - wingL) + 0; // simplified external
+    const wallAreaTotal = (2 * (mainL + mainW) * H) + (2 * (wingL + wingW) * H) - (2 * wingW * H); // subtract shared wall
+    return { wallAreaTotal, roofArea, floorArea };
+  }
+
+  // Default: Rectangular
+  const wallAreaTotal = 2 * (L + W) * H;
+  const roofArea = L * W;
+  const floorArea = L * W;
+  return { wallAreaTotal, roofArea, floorArea };
+}
+
+/**
  * Compute instantaneous heat balance for a given state timestep
  */
 function computeInstantaneousHeatBalance({
@@ -18,22 +67,27 @@ function computeInstantaneousHeatBalance({
   hour,
   latitude = 34.15,
   shelter,
-  internalGainsWatts = 420 // 4 personnel (320W) + equipment (100W)
+  internalGainsWatts = null
 }) {
   const { geometry, design, openings, materials } = shelter;
+
+  // Calculate dynamic internal heat gains from occupants if not explicitly overridden
+  const occupantsCount = shelter.internalGains?.occupantsCount !== undefined ? shelter.internalGains.occupantsCount : 4;
+  const heatPerOccupant = shelter.internalGains?.heatPerOccupant !== undefined ? shelter.internalGains.heatPerOccupant : 80;
+  const equipmentPower = shelter.internalGains?.equipmentPower !== undefined ? shelter.internalGains.equipmentPower : 100;
+  const calculatedInternalGains = occupantsCount * heatPerOccupant + equipmentPower;
+  const effectiveInternalGains = internalGainsWatts !== null ? internalGainsWatts : calculatedInternalGains;
 
   // Extract dimensions
   const L = geometry.length;
   const W = geometry.width;
   const H = geometry.height;
 
-  // Surface areas
-  const wallAreaTotal = 2 * (L + W) * H;
+  // Shape-dependent surface areas
+  const { wallAreaTotal, roofArea, floorArea } = getShapeAreas(L, W, H, design.shape);
   const doorArea = openings.doorArea || 1.8;
   const windowArea = openings.windowArea || 2.5;
   const wallAreaNet = Math.max(0, wallAreaTotal - windowArea - doorArea);
-  const roofArea = L * W;
-  const floorArea = L * W;
 
   // Convection coefficients
   const hExt = getExternalConvectionCoefficient(windSpeed);
@@ -103,7 +157,7 @@ function computeInstantaneousHeatBalance({
   const totalHeatLoss = Math.max(0, totalConductionLoss + Math.max(0, qRoofSkyRadiation));
   
   // Net Heat (Watts)
-  const netHeatWatts = totalSolarGain + internalGainsWatts - totalHeatLoss;
+  const netHeatWatts = totalSolarGain + effectiveInternalGains - totalHeatLoss;
 
   return {
     netHeatWatts,
@@ -111,7 +165,7 @@ function computeInstantaneousHeatBalance({
     totalHeatLoss,
     conductionLoss: totalConductionLoss,
     skyRadiationLoss: Math.max(0, qRoofSkyRadiation),
-    internalGainsWatts,
+    internalGainsWatts: effectiveInternalGains,
     componentBreakdown: {
       wallConduction: qWallCond,
       roofConduction: qRoofCond,
@@ -123,5 +177,6 @@ function computeInstantaneousHeatBalance({
 }
 
 module.exports = {
-  computeInstantaneousHeatBalance
+  computeInstantaneousHeatBalance,
+  getShapeAreas
 };
