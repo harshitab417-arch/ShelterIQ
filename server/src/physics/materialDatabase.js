@@ -68,6 +68,7 @@ const INSULATION_MATERIALS = [
     emissivity: 0.80,
     solarAbsorptivity: 0.40,
     thicknessDefault: 0.10,
+    validThicknesses: [0.05, 0.075, 0.10, 0.125, 0.15, 0.20],
     notes: 'High-performance rigid thermal insulation — best R-value per mm.'
   },
   {
@@ -80,6 +81,7 @@ const INSULATION_MATERIALS = [
     emissivity: 0.85,
     solarAbsorptivity: 0.45,
     thicknessDefault: 0.12,
+    validThicknesses: [0.05, 0.08, 0.10, 0.12, 0.15, 0.18, 0.20],
     notes: 'Lightweight low-conductivity insulation board.'
   },
   {
@@ -92,6 +94,7 @@ const INSULATION_MATERIALS = [
     emissivity: 0.90,
     solarAbsorptivity: 0.50,
     thicknessDefault: 0.10,
+    validThicknesses: [0.05, 0.075, 0.10, 0.125, 0.15],
     notes: 'Fire-resistant mineral fiber insulation batt.'
   }
 ];
@@ -189,11 +192,36 @@ const DOOR_MATERIAL_DEFAULT = {
   notes: 'Hardwood insulated entrance door — standard for high-altitude shelters.'
 };
 
+/**
+ * Helper function to retrieve the material-specific valid thickness list
+ * @param {Object} mat 
+ * @returns {number[]} Array of thickness values in meters
+ */
+function getMaterialThicknesses(mat) {
+  if (!mat) return [0.10];
+  if (Array.isArray(mat.validThicknesses) && mat.validThicknesses.length > 0) {
+    return mat.validThicknesses;
+  }
+  if (mat.minThickness !== undefined && mat.maxThickness !== undefined && mat.thicknessStep) {
+    const arr = [];
+    let current = Number(mat.minThickness);
+    const max = Number(mat.maxThickness);
+    const step = Number(mat.thicknessStep);
+    while (current <= max + 1e-6) {
+      arr.push(Number(current.toFixed(4)));
+      current += step;
+    }
+    if (arr.length > 0) return arr;
+  }
+  return [mat.thicknessDefault || 0.10];
+}
+
 module.exports = {
   WALL_MATERIALS,
   INSULATION_MATERIALS,
   ROOF_MATERIALS,
   WINDOW_MATERIALS,
   FLOOR_MATERIAL_DEFAULT,
-  DOOR_MATERIAL_DEFAULT
+  DOOR_MATERIAL_DEFAULT,
+  getMaterialThicknesses
 };

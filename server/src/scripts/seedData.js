@@ -35,6 +35,7 @@ const seedMaterials = [
     emissivity: 0.80,
     solarAbsorptivity: 0.40,
     thicknessDefault: 0.10,
+    validThicknesses: [0.05, 0.075, 0.10, 0.125, 0.15, 0.20],
     notes: 'High-performance rigid thermal insulation panel.',
     isDefault: true
   },
@@ -47,7 +48,21 @@ const seedMaterials = [
     emissivity: 0.85,
     solarAbsorptivity: 0.45,
     thicknessDefault: 0.12,
+    validThicknesses: [0.05, 0.08, 0.10, 0.12, 0.15, 0.18, 0.20],
     notes: 'Lightweight low-conductivity insulation board.',
+    isDefault: true
+  },
+  {
+    name: 'Mineral Wool (Rock Wool)',
+    category: 'Insulation',
+    thermalConductivity: 0.038,
+    density: 100,
+    specificHeat: 1030,
+    emissivity: 0.90,
+    solarAbsorptivity: 0.50,
+    thicknessDefault: 0.10,
+    validThicknesses: [0.05, 0.075, 0.10, 0.125, 0.15],
+    notes: 'Fire-resistant mineral fiber insulation batt.',
     isDefault: true
   },
   {

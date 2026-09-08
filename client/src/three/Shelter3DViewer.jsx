@@ -757,6 +757,7 @@ export default function Shelter3DViewer({
   dimensions = {},
   design = {},
   openings = {},
+  orientation = null,
   thermalHourData = null,
   height = 360
 }) {
@@ -770,6 +771,7 @@ export default function Shelter3DViewer({
 
   const activeDimensions = { ...geometry, ...dimensions };
   const activeShape = shape || design?.shape || 'rectangle';
+  const activeOrientation = orientation !== null ? Number(orientation) : Number(design?.orientation || openings?.openingOrientation || 180);
 
   // Compute bounding scale for camera placement
   const maxDim = Math.max(
@@ -795,6 +797,10 @@ export default function Shelter3DViewer({
           <span className="text-slate-300">|</span>
           <span className="font-semibold text-slate-700">
             🪟 Windows: <span className="text-sky-700 font-bold">{activeWindowCount}</span>
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="font-semibold text-slate-700">
+            🧭 Orient: <span className="text-emerald-700 font-bold">{activeOrientation}°</span>
           </span>
         </div>
       </div>
@@ -852,14 +858,16 @@ export default function Shelter3DViewer({
 
         <CameraController bounds={maxDim} />
 
-        <ShelterMesh
-          shape={activeShape}
-          dimensions={activeDimensions}
-          design={design}
-          openings={openings}
-          thermalHourData={thermalHourData}
-        />
-        <SolarVectorArrow orientation={design?.orientation || openings?.openingOrientation || 180} />
+        <group rotation={[0, ((activeOrientation - 180) * Math.PI) / 180, 0]}>
+          <ShelterMesh
+            shape={activeShape}
+            dimensions={activeDimensions}
+            design={{ ...design, orientation: activeOrientation }}
+            openings={openings}
+            thermalHourData={thermalHourData}
+          />
+        </group>
+        <SolarVectorArrow orientation={activeOrientation} />
 
         <Grid
           infiniteGrid

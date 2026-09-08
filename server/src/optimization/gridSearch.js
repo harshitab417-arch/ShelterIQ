@@ -3,6 +3,7 @@
  */
 
 const { runThermalSimulation } = require('../physics/simulationEngine');
+const { getMaterialThicknesses } = require('../physics/materialDatabase');
 
 /**
  * Perform Grid Search Optimization over parameter design space
@@ -15,7 +16,6 @@ async function runGridSearch({
   comfortSettings = { minComfortTemp: 18, maxComfortTemp: 24 },
   searchSpace = {
     orientations: [90, 135, 180, 225], // deg (180=South)
-    insulationThicknesses: [0.05, 0.10, 0.15, 0.20], // meters
     windowAreas: [1.5, 2.5, 4.0] // m²
   },
   io = null,
@@ -29,14 +29,20 @@ async function runGridSearch({
   const roofMatList = roofMaterials.length > 0 ? roofMaterials : [baseShelter.materials.roofMaterial];
   const insMatList = insMaterials.length > 0 ? insMaterials : [baseShelter.materials.insulationMaterial];
 
+  const orientations = searchSpace.orientations || [90, 135, 180, 225];
+  const windowAreas = searchSpace.windowAreas || [1.5, 2.5, 4.0];
+
   const candidateCombinations = [];
 
   wallMatList.forEach(wMat => {
     roofMatList.forEach(rMat => {
       insMatList.forEach(iMat => {
-        searchSpace.orientations.forEach(orient => {
-          searchSpace.insulationThicknesses.forEach(insThick => {
-            searchSpace.windowAreas.forEach(wArea => {
+        // Retrieve material-specific thickness options
+        const matThicknesses = getMaterialThicknesses(iMat);
+
+        orientations.forEach(orient => {
+          matThicknesses.forEach(insThick => {
+            windowAreas.forEach(wArea => {
               candidateCombinations.push({
                 wallMaterial: wMat,
                 roofMaterial: rMat,
@@ -75,7 +81,9 @@ async function runGridSearch({
       },
       geometry: {
         ...baseShelter.geometry,
-        wallThickness: candidate.insulationThickness + 0.15
+        insulationThickness: candidate.insulationThickness,
+        wallThickness: candidate.wallMaterial?.thicknessDefault || baseShelter.geometry?.wallThickness || 0.25,
+        roofThickness: candidate.roofMaterial?.thicknessDefault || baseShelter.geometry?.roofThickness || 0.20
       },
       materials: {
         ...baseShelter.materials,

@@ -13,6 +13,10 @@ const materialSchema = new mongoose.Schema({
   emissivity: { type: Number, required: true, default: 0.9 }, // 0 - 1
   solarAbsorptivity: { type: Number, required: true, default: 0.7 }, // 0 - 1
   thicknessDefault: { type: Number, default: 0.15 }, // meters
+  validThicknesses: { type: [Number], default: undefined }, // Array of valid thicknesses in meters
+  minThickness: { type: Number, default: undefined },
+  maxThickness: { type: Number, default: undefined },
+  thicknessStep: { type: Number, default: undefined },
   notes: { type: String, default: '' },
   isDefault: { type: Boolean, default: false },
   isCustom: { type: Boolean, default: false },

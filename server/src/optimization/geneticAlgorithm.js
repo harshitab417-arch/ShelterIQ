@@ -3,6 +3,7 @@
  */
 
 const { runThermalSimulation } = require('../physics/simulationEngine');
+const { getMaterialThicknesses } = require('../physics/materialDatabase');
 
 /**
  * Execute Genetic Algorithm design search
@@ -28,33 +29,44 @@ async function runGeneticAlgorithm({
   const insMatList = insMaterials.length > 0 ? insMaterials : [baseShelter.materials.insulationMaterial];
 
   const orientations = [90, 135, 180, 225, 270];
-  const thicknesses = [0.05, 0.10, 0.15, 0.20, 0.25];
   const windowAreas = [1.5, 2.0, 2.5, 3.5, 4.5];
 
   // Helper to create random chromosome
-  const createRandomChromosome = () => ({
-    wallMatIdx: Math.floor(Math.random() * wallMatList.length),
-    roofMatIdx: Math.floor(Math.random() * roofMatList.length),
-    insMatIdx: Math.floor(Math.random() * insMatList.length),
-    orientIdx: Math.floor(Math.random() * orientations.length),
-    thickIdx: Math.floor(Math.random() * thicknesses.length),
-    winIdx: Math.floor(Math.random() * windowAreas.length)
-  });
+  const createRandomChromosome = () => {
+    const insMatIdx = Math.floor(Math.random() * insMatList.length);
+    const insMat = insMatList[insMatIdx];
+    const thicknesses = getMaterialThicknesses(insMat);
+    return {
+      wallMatIdx: Math.floor(Math.random() * wallMatList.length),
+      roofMatIdx: Math.floor(Math.random() * roofMatList.length),
+      insMatIdx,
+      orientIdx: Math.floor(Math.random() * orientations.length),
+      thickIdx: Math.floor(Math.random() * thicknesses.length),
+      winIdx: Math.floor(Math.random() * windowAreas.length)
+    };
+  };
 
   // Evaluate chromosome fitness
   const evaluateChromosome = (chromo) => {
-    const wallMat = wallMatList[chromo.wallMatIdx];
-    const roofMat = roofMatList[chromo.roofMatIdx];
-    const insMat = insMatList[chromo.insMatIdx];
-    const orient = orientations[chromo.orientIdx];
-    const thick = thicknesses[chromo.thickIdx];
-    const winArea = windowAreas[chromo.winIdx];
+    const wallMat = wallMatList[chromo.wallMatIdx % wallMatList.length];
+    const roofMat = roofMatList[chromo.roofMatIdx % roofMatList.length];
+    const insMat = insMatList[chromo.insMatIdx % insMatList.length];
+    const orient = orientations[chromo.orientIdx % orientations.length];
+    const windowArea = windowAreas[chromo.winIdx % windowAreas.length];
+
+    const matThicknesses = getMaterialThicknesses(insMat);
+    const thick = matThicknesses[chromo.thickIdx % matThicknesses.length];
 
     const testShelter = {
       ...baseShelter,
       design: { ...baseShelter.design, orientation: orient },
-      openings: { ...baseShelter.openings, windowArea: winArea },
-      geometry: { ...baseShelter.geometry, wallThickness: thick + 0.15 },
+      openings: { ...baseShelter.openings, windowArea },
+      geometry: {
+        ...baseShelter.geometry,
+        insulationThickness: thick,
+        wallThickness: wallMat?.thicknessDefault || baseShelter.geometry?.wallThickness || 0.25,
+        roofThickness: roofMat?.thicknessDefault || baseShelter.geometry?.roofThickness || 0.20
+      },
       materials: {
         ...baseShelter.materials,
         wallMaterial: wallMat,
