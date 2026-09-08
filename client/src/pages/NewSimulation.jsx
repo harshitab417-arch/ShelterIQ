@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import {
   Check,
@@ -182,6 +182,7 @@ const SHAPE_OPTIONS = [
 
 export default function NewSimulation() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [climates, setClimates] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -192,7 +193,7 @@ export default function NewSimulation() {
 
   // Step 2: Shelter Design
   const [shelterName, setShelterName] = useState('DRDO High-Altitude Passive Shelter');
-  const [selectedShape, setSelectedShape] = useState('rectangle');
+  const [selectedShape, setSelectedShape] = useState(location.state?.preselectedShape || 'rectangle');
 
   // Shape-specific dynamic dimensions
   const [rectangleDims, setRectangleDims] = useState({ length: 6.0, width: 4.0, height: 2.8, roofAngle: 25 });
