@@ -350,6 +350,24 @@ export default function SimulationResultsPage({ simulation, onBack }) {
                 <span className="text-[10px] text-slate-400 uppercase font-bold block">Exposed Envelope Area</span>
                 <span className="text-sm font-bold text-slate-800">{geometry.exposedEnvelopeArea || 75.0} m²</span>
               </div>
+              <div className="p-3 bg-amber-50/60 border border-amber-200/80 rounded-xl">
+                <span className="text-[10px] text-amber-700 uppercase font-bold block">🚪 Doors</span>
+                <span className="text-sm font-bold text-amber-900">
+                  {simulation.shelter?.openings?.doorCount ?? 1} Door{(simulation.shelter?.openings?.doorCount ?? 1) > 1 ? 's' : ''}
+                </span>
+                <span className="text-[10px] text-amber-600 block">
+                  ≈ {((simulation.shelter?.openings?.doorCount ?? 1) * 1.8).toFixed(1)} m² timber
+                </span>
+              </div>
+              <div className="p-3 bg-sky-50/60 border border-sky-200/80 rounded-xl">
+                <span className="text-[10px] text-sky-700 uppercase font-bold block">🪟 Windows & Glazing</span>
+                <span className="text-sm font-bold text-sky-900">
+                  {simulation.shelter?.openings?.windowCount ?? 2} Window{(simulation.shelter?.openings?.windowCount ?? 2) > 1 ? 's' : ''}
+                </span>
+                <span className="text-[10px] text-sky-600 block">
+                  {simulation.shelter?.openings?.windowArea ?? 2.5} m² total
+                </span>
+              </div>
             </div>
 
             <div className="p-3.5 bg-sky-50 border border-sky-100 rounded-xl space-y-2">

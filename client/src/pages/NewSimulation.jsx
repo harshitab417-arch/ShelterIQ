@@ -22,11 +22,131 @@ import {
 import Shelter3DViewer from '../three/Shelter3DViewer';
 import LocationPicker from '../components/LocationPicker';
 
+// ─── Shelter Shape SVG Architectural Previews ───
+function PreviewRectangle() {
+  return (
+    <svg viewBox="0 0 80 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      {/* Ground */}
+      <rect x="2" y="52" width="76" height="3" rx="1" fill="#567a3c"/>
+      {/* Foundation */}
+      <rect x="11" y="49" width="58" height="3" rx="1" fill="#9e9e9e"/>
+      {/* Walls */}
+      <rect x="13" y="29" width="54" height="20" fill="#d4c5a0"/>
+      {/* Roof */}
+      <polygon points="8,29 40,10 72,29" fill="#8a9496"/>
+      <polygon points="8,29 40,10 72,29" fill="none" stroke="#6e7c7c" strokeWidth="0.6"/>
+      {/* Door frame */}
+      <rect x="34" y="36" width="10" height="13" rx="0.5" fill="#f3f3f3"/>
+      {/* Door */}
+      <rect x="35" y="37" width="8" height="12" fill="#4a2910"/>
+      <circle cx="37.5" cy="43" r="0.9" fill="#c8920a"/>
+      {/* Step */}
+      <rect x="32" y="49" width="14" height="2" rx="0.5" fill="#9e9e9e"/>
+      {/* Left window frame */}
+      <rect x="16" y="34" width="13" height="9" rx="0.5" fill="#f3f3f3"/>
+      <rect x="17" y="35" width="11" height="7" fill="#a8d8ea" fillOpacity="0.78"/>
+      <line x1="16" y1="38.5" x2="29" y2="38.5" stroke="#e0e0e0" strokeWidth="0.7"/>
+      <line x1="22.5" y1="34" x2="22.5" y2="43" stroke="#e0e0e0" strokeWidth="0.7"/>
+      {/* Bushes */}
+      <circle cx="11" cy="49" r="3.5" fill="#2e7d32"/>
+      <circle cx="69" cy="49" r="2.8" fill="#388e3c"/>
+      <circle cx="7" cy="50" r="2" fill="#33691e"/>
+    </svg>
+  );
+}
+
+function PreviewDome() {
+  return (
+    <svg viewBox="0 0 80 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      {/* Ground */}
+      <rect x="2" y="52" width="76" height="3" rx="1" fill="#567a3c"/>
+      {/* Circular foundation */}
+      <ellipse cx="40" cy="51" rx="28" ry="2.5" fill="#9e9e9e"/>
+      {/* Ring wall */}
+      <rect x="12" y="37" width="56" height="13" fill="#d4c5a0"/>
+      {/* Dome cap */}
+      <path d="M12,37 Q12,7 40,7 Q68,7 68,37" fill="#e8e0d0"/>
+      <path d="M12,37 Q12,7 40,7 Q68,7 68,37" fill="none" stroke="#b0a898" strokeWidth="0.8"/>
+      {/* Clerestory glazing band */}
+      <path d="M17,37 Q17,15 40,15 Q63,15 63,37" fill="none" stroke="#a8d8ea" strokeWidth="2.5" strokeOpacity="0.7"/>
+      {/* Door frame */}
+      <rect x="33" y="38" width="14" height="12" rx="0.5" fill="#f3f3f3"/>
+      <rect x="34" y="39" width="12" height="11" fill="#4a2910"/>
+      <circle cx="37" cy="44" r="0.9" fill="#c8920a"/>
+      {/* Step */}
+      <rect x="31" y="49" width="18" height="2" rx="0.5" fill="#9e9e9e"/>
+      {/* Bushes */}
+      <circle cx="10" cy="50" r="3" fill="#2e7d32"/>
+      <circle cx="70" cy="50" r="2.5" fill="#388e3c"/>
+      <circle cx="16" cy="51" r="2" fill="#33691e"/>
+    </svg>
+  );
+}
+
+function PreviewAFrame() {
+  return (
+    <svg viewBox="0 0 80 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      {/* Ground */}
+      <rect x="2" y="52" width="76" height="3" rx="1" fill="#567a3c"/>
+      {/* Base platform */}
+      <rect x="10" y="49" width="60" height="3" rx="1" fill="#9e9e9e"/>
+      {/* A-frame main structure */}
+      <polygon points="10,49 40,8 70,49" fill="#6b4c2a"/>
+      {/* Lower lighter band */}
+      <rect x="16" y="37" width="48" height="12" fill="#c4a882"/>
+      {/* Door frame */}
+      <rect x="34" y="38" width="12" height="12" rx="0.5" fill="#f3f3f3"/>
+      <rect x="35" y="39" width="10" height="11" fill="#4a2910"/>
+      <circle cx="38" cy="44" r="0.9" fill="#c8920a"/>
+      {/* Step */}
+      <rect x="32" y="49" width="16" height="2" rx="0.5" fill="#9e9e9e"/>
+      {/* Upper gable window */}
+      <rect x="34" y="21" width="12" height="8" rx="0.5" fill="#a8d8ea" fillOpacity="0.78"/>
+      {/* Bushes */}
+      <circle cx="13" cy="49" r="3" fill="#2e7d32"/>
+      <circle cx="67" cy="49" r="2.5" fill="#388e3c"/>
+    </svg>
+  );
+}
+
+function PreviewQuonset() {
+  return (
+    <svg viewBox="0 0 80 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      {/* Ground */}
+      <rect x="2" y="52" width="76" height="3" rx="1" fill="#567a3c"/>
+      {/* Concrete pad */}
+      <rect x="7" y="49" width="66" height="3" rx="1" fill="#9e9e9e"/>
+      {/* Arch shell */}
+      <path d="M7,49 Q7,9 40,9 Q73,9 73,49" fill="#8fa8a8"/>
+      <path d="M7,49 Q7,9 40,9 Q73,9 73,49" fill="none" stroke="#6e8888" strokeWidth="0.8"/>
+      {/* Sandbag strips */}
+      <rect x="4" y="46" width="5" height="4" rx="0.5" fill="#a09060"/>
+      <rect x="71" y="46" width="5" height="4" rx="0.5" fill="#a09060"/>
+      {/* Door frame */}
+      <rect x="33" y="33" width="14" height="16" rx="0.5" fill="#f3f3f3"/>
+      <rect x="34" y="34" width="12" height="15" fill="#3a3a3a"/>
+      <circle cx="37" cy="41" r="0.9" fill="#c0c0c0"/>
+      {/* Step */}
+      <rect x="31" y="49" width="18" height="2" rx="0.5" fill="#9e9e9e"/>
+      {/* Left window */}
+      <rect x="13" y="26" width="11" height="9" rx="0.5" fill="#f3f3f3"/>
+      <rect x="14" y="27" width="9" height="7" fill="#a8d8ea" fillOpacity="0.78"/>
+      {/* Right window */}
+      <rect x="56" y="26" width="11" height="9" rx="0.5" fill="#f3f3f3"/>
+      <rect x="57" y="27" width="9" height="7" fill="#a8d8ea" fillOpacity="0.78"/>
+      {/* Bushes */}
+      <circle cx="8" cy="49" r="2.5" fill="#2e7d32"/>
+      <circle cx="72" cy="49" r="2" fill="#388e3c"/>
+    </svg>
+  );
+}
+
 const SHAPE_OPTIONS = [
   {
     id: 'rectangle',
     name: 'Rectangular Shelter',
     icon: Box,
+    Preview: PreviewRectangle,
     badge: 'Conventional Living',
     advantage: 'High Usable Floor Efficiency',
     description: 'Conventional orthogonal shelter suitable for general living quarters, headquarters, and field hospital units.'
@@ -35,6 +155,7 @@ const SHAPE_OPTIONS = [
     id: 'dome',
     name: 'Dome Shelter',
     icon: CircleDot,
+    Preview: PreviewDome,
     badge: 'Aerodynamic / Low A/V',
     advantage: 'Minimal Heat Loss Exposure',
     description: 'Spherical cap / geodesic geometry providing low surface-area-to-volume ratio and superior aerodynamic deflection of Himalayan gales.'
@@ -43,6 +164,7 @@ const SHAPE_OPTIONS = [
     id: 'a-frame',
     name: 'A-Frame Shelter',
     icon: Triangle,
+    Preview: PreviewAFrame,
     badge: 'Snow-Shedding',
     advantage: 'Prevents Heavy Snowdrift Load',
     description: 'Triangular prism geometry with steep sloping roof planes engineered for self-shedding snow loads in high-altitude mountain passes.'
@@ -51,6 +173,7 @@ const SHAPE_OPTIONS = [
     id: 'quonset',
     name: 'Quonset / Arch Shelter',
     icon: Layers,
+    Preview: PreviewQuonset,
     badge: 'Modular Rapid Deployment',
     advantage: 'High Arch Structural Rigidity',
     description: 'Semi-cylindrical continuous arch shelter offering structural simplicity, high strength-to-weight ratio, and rapid deployment.'
@@ -86,11 +209,84 @@ export default function NewSimulation() {
     openingOrientation: 180
   });
 
-  // Step 4: Thermal Comfort Settings
-  const [comfortSettings, setComfortSettings] = useState({
-    minComfortTemp: 18,
-    maxComfortTemp: 24
-  });
+  // System-derived Location-Based Optimal Indoor Comfort Range
+  const detectedComfort = useMemo(() => {
+    if (!selectedClimate) {
+      return {
+        minComfortTemp: 18.0,
+        maxComfortTemp: 24.0,
+        neutralTemp: 21.0,
+        climateType: 'Moderate / Standard (Default)',
+        meanAmbient: 12.0,
+        reason: 'Standard ASHRAE / NBC India baseline range for temperate occupancy.'
+      };
+    }
+
+    const dataPoints = selectedClimate.dataPoints || [];
+    let avgAmb = 10;
+    if (dataPoints.length > 0) {
+      const sum = dataPoints.reduce((acc, dp) => acc + (Number(dp.ambientTemperature) || 0), 0);
+      avgAmb = sum / dataPoints.length;
+    } else if (typeof selectedClimate.elevation === 'number' && selectedClimate.elevation > 2500) {
+      avgAmb = -5; // High altitude cold default
+    }
+
+    // Adaptive Thermal Comfort Model (ASHRAE Standard 55 & NBC 2016 adaptive comfort for naturally ventilated & passive shelters):
+    // Neutral comfort temperature: T_comf = 17.8 + 0.31 * T_outdoor_mean
+    // Bounded for extreme sub-zero Himalayan stations (DRDO winter survival standard: 16°C–22°C)
+    // up to hot tropical plains (22°C–28°C)
+    let neutral = 17.8 + 0.31 * avgAmb;
+    let minT = Math.round((neutral - 3.0) * 10) / 10;
+    let maxT = Math.round((neutral + 3.0) * 10) / 10;
+
+    let climateType = 'Moderate Himalayan Valley';
+    let reason = '';
+
+    if (avgAmb <= 0) {
+      // Extreme High-Altitude Cold (e.g. Siachen, Leh, Dras, Nyoma, Lahaul)
+      minT = 16.0;
+      maxT = 21.0;
+      neutral = 18.5;
+      climateType = 'Extreme Sub-Zero / High-Altitude (DRDO Cold Standard)';
+      reason = `Location experiences sub-zero conditions (mean outdoor: ${avgAmb.toFixed(1)}°C). System calibrated the optimal indoor band to 16.0°C–21.0°C (metabolic rate 80W/person with military thermal gear/bedding) to prevent hypothermia while avoiding excessive envelope heat loss.`;
+    } else if (avgAmb <= 15) {
+      // Cold / Temperate Mountainous
+      minT = Math.max(16.5, minT);
+      maxT = Math.min(23.0, maxT);
+      neutral = (minT + maxT) / 2;
+      climateType = 'Cold Alpine / Highland';
+      reason = `Highland climate (mean outdoor: ${avgAmb.toFixed(1)}°C). Adaptive comfort target set to ${minT.toFixed(1)}°C–${maxT.toFixed(1)}°C to maximize passive solar retention and thermal mass damping.`;
+    } else if (avgAmb <= 26) {
+      // Composite / Moderate
+      minT = 18.0;
+      maxT = 25.0;
+      neutral = 21.5;
+      climateType = 'Composite / Moderate';
+      reason = `Moderate climate (mean outdoor: ${avgAmb.toFixed(1)}°C). Optimal comfort band auto-calibrated to 18.0°C–25.0°C following ASHRAE 55 standard comfort criteria.`;
+    } else {
+      // Hot / Tropical / Arid
+      minT = Math.max(22.0, minT);
+      maxT = Math.min(28.0, maxT);
+      neutral = (minT + maxT) / 2;
+      climateType = 'Hot / Semi-Arid';
+      reason = `Warm ambient profile (mean outdoor: ${avgAmb.toFixed(1)}°C). Indoor upper tolerance expanded to ${maxT.toFixed(1)}°C with nighttime ventilation cooling.`;
+    }
+
+    return {
+      minComfortTemp: Number(minT.toFixed(1)),
+      maxComfortTemp: Number(maxT.toFixed(1)),
+      neutralTemp: Number(neutral.toFixed(1)),
+      climateType,
+      meanAmbient: Number(avgAmb.toFixed(1)),
+      reason
+    };
+  }, [selectedClimate]);
+
+  // Keep comfortSettings synchronized with detected comfort band for the chosen location
+  const comfortSettings = useMemo(() => ({
+    minComfortTemp: detectedComfort.minComfortTemp,
+    maxComfortTemp: detectedComfort.maxComfortTemp
+  }), [detectedComfort]);
 
   useEffect(() => {
     async function loadOptions() {
@@ -270,9 +466,15 @@ export default function NewSimulation() {
       </div>
 
       {/* Progress Bar */}
-      <div className="card-clean p-4">
-        <div className="flex justify-between items-center relative">
-          <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -z-0"></div>
+      <div className="card-clean px-6 pt-5 pb-7">
+        <div className="relative flex justify-between items-start">
+          {/* Connector line — sits at top-4 = center of 32px (h-8) circles */}
+          <div className="absolute left-0 right-0 top-4 h-[2px] bg-slate-200 z-0" />
+          {/* Completed portion overlay */}
+          <div
+            className="absolute left-0 top-4 h-[2px] bg-sky-500 z-0 transition-all duration-500"
+            style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+          />
           {steps.map((step) => {
             const isDone = step.num < currentStep;
             const isCurrent = step.num === currentStep;
@@ -281,17 +483,17 @@ export default function NewSimulation() {
               <div key={step.num} className="relative z-10 flex flex-col items-center">
                 <button
                   onClick={() => setCurrentStep(step.num)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition shadow-sm ${
                     isDone
                       ? 'bg-sky-600 text-white'
                       : isCurrent
                       ? 'bg-sky-600 text-white ring-4 ring-sky-100'
-                      : 'bg-slate-200 text-slate-600'
+                      : 'bg-slate-200 text-slate-500'
                   }`}
                 >
                   {isDone ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                 </button>
-                <span className={`text-[10px] mt-1 font-semibold ${isCurrent ? 'text-sky-700' : 'text-slate-500'}`}>
+                <span className={`text-[10px] mt-2 font-semibold text-center max-w-[72px] leading-tight ${isCurrent ? 'text-sky-700' : isDone ? 'text-slate-600' : 'text-slate-400'}`}>
                   {step.title}
                 </span>
               </div>
@@ -299,6 +501,7 @@ export default function NewSimulation() {
           })}
         </div>
       </div>
+
 
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
@@ -372,7 +575,7 @@ export default function NewSimulation() {
                       className={`p-4 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between ${
                         isSelected
                           ? 'bg-sky-50/80 border-sky-600 shadow-md ring-2 ring-sky-200'
-                          : 'bg-white border-slate-200 hover:border-slate-300'
+                          : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
                       }`}
                     >
                       <div>
@@ -384,6 +587,14 @@ export default function NewSimulation() {
                             {shapeOpt.badge}
                           </span>
                         </div>
+
+                        {/* SVG Architectural Preview */}
+                        <div className={`my-2.5 rounded-lg overflow-hidden flex items-end justify-center px-2 pt-2 pb-0 ${
+                          isSelected ? 'bg-gradient-to-b from-sky-100/60 to-green-50/80' : 'bg-gradient-to-b from-slate-50 to-green-50/60'
+                        }`} style={{ height: '88px' }}>
+                          <shapeOpt.Preview />
+                        </div>
+
                         <h3 className="text-sm font-bold text-slate-800">{shapeOpt.name}</h3>
                         <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{shapeOpt.description}</p>
                         <p className="text-[10px] text-sky-700 font-semibold mt-2">Advantage: {shapeOpt.advantage}</p>
@@ -614,7 +825,7 @@ export default function NewSimulation() {
                 <Shelter3DViewer
                   shape={selectedShape}
                   dimensions={currentDimensions}
-                  openings={openings}
+                  openings={{ ...openings, doorCount }}
                   height={340}
                 />
               </div>
@@ -734,31 +945,77 @@ export default function NewSimulation() {
               </p>
             </div>
 
-            {/* Comfort Settings */}
-            <div className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <Sliders className="w-4 h-4 text-sky-600" /> Indoor Thermal Comfort Target Band
-              </h3>
+            {/* Location-Based Auto-Detected Comfort Settings Card */}
+            <div className="p-5 border border-sky-200 rounded-xl bg-gradient-to-br from-sky-50/70 via-white to-blue-50/50 space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-sky-100 pb-3">
+                <h3 className="text-xs font-bold text-sky-950 uppercase tracking-wider flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-sky-600" />
+                  System-Detected Thermal Comfort Boundary
+                </h3>
+                <span className="text-[11px] font-bold text-sky-700 bg-sky-100/80 border border-sky-200 px-2.5 py-0.5 rounded-full flex items-center gap-1 w-fit">
+                  <Sparkles className="w-3 h-3 text-sky-600" /> Auto-Calibrated by Location
+                </span>
+              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Minimum Comfort Temp (°C)</label>
-                  <input
-                    type="number"
-                    value={comfortSettings.minComfortTemp}
-                    onChange={(e) => setComfortSettings({ ...comfortSettings, minComfortTemp: parseFloat(e.target.value) || 18 })}
-                    className="input-clean"
-                  />
+              {/* Climate & Location Context */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="bg-white/80 backdrop-blur p-3 rounded-lg border border-sky-100/80">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Selected Location</span>
+                  <span className="font-bold text-slate-800 truncate block">
+                    {selectedClimate?.location || selectedClimate?.name || 'No location selected'}
+                  </span>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Maximum Comfort Temp (°C)</label>
-                  <input
-                    type="number"
-                    value={comfortSettings.maxComfortTemp}
-                    onChange={(e) => setComfortSettings({ ...comfortSettings, maxComfortTemp: parseFloat(e.target.value) || 24 })}
-                    className="input-clean"
-                  />
+                <div className="bg-white/80 backdrop-blur p-3 rounded-lg border border-sky-100/80">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Climate Classification</span>
+                  <span className="font-bold text-sky-900 block">
+                    {detectedComfort.climateType}
+                  </span>
                 </div>
+                <div className="bg-white/80 backdrop-blur p-3 rounded-lg border border-sky-100/80">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Mean Outdoor Ambient</span>
+                  <span className={`font-bold font-mono text-sm block ${detectedComfort.meanAmbient <= 0 ? 'text-blue-600' : 'text-slate-800'}`}>
+                    {detectedComfort.meanAmbient}°C
+                  </span>
+                </div>
+              </div>
+
+              {/* System Detected Min and Max Temperature Indicators */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                {/* Min Comfort Temp */}
+                <div className="p-4 bg-white rounded-xl border border-sky-200/80 shadow-sm flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">System Detected Min Temp</span>
+                    <span className="text-xs text-slate-600 font-medium">Lower Thermal Comfort Threshold</span>
+                    <p className="text-[10px] text-sky-600 mt-1">Prevents hypothermia & condensation</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold font-mono text-sky-700">
+                      {detectedComfort.minComfortTemp}°C
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400 block">Auto-Locked</span>
+                  </div>
+                </div>
+
+                {/* Max Comfort Temp */}
+                <div className="p-4 bg-white rounded-xl border border-sky-200/80 shadow-sm flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">System Detected Max Temp</span>
+                    <span className="text-xs text-slate-600 font-medium">Upper Thermal Comfort Threshold</span>
+                    <p className="text-[10px] text-sky-600 mt-1">Limits overheating & ventilation loss</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold font-mono text-sky-700">
+                      {detectedComfort.maxComfortTemp}°C
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400 block">Auto-Locked</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Physical / Engineering Explanation */}
+              <div className="p-3 bg-white/70 rounded-lg border border-sky-100 text-[11px] text-slate-600 leading-relaxed">
+                <span className="font-bold text-slate-800">Adaptive Comfort Criterion: </span>
+                {detectedComfort.reason}
               </div>
             </div>
 
@@ -813,6 +1070,10 @@ export default function NewSimulation() {
               <div className="flex justify-between">
                 <span className="text-slate-500">Location:</span>
                 <span className="font-bold text-slate-800">{selectedClimate?.location || selectedClimate?.name || 'Not selected'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Auto Comfort Target:</span>
+                <span className="font-bold text-sky-700 font-mono">{detectedComfort.minComfortTemp}°C – {detectedComfort.maxComfortTemp}°C</span>
               </div>
             </div>
 
