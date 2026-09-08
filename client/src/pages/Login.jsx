@@ -47,12 +47,13 @@ export default function Login() {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">DRDO Email Address</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input-clean pl-9"
+                className="input-clean"
+                style={{ paddingLeft: '2.5rem' }}
                 placeholder="engineer@drdo.in"
                 required
               />
@@ -62,12 +63,13 @@ export default function Login() {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input-clean pl-9"
+                className="input-clean"
+                style={{ paddingLeft: '2.5rem' }}
                 placeholder="••••••••"
                 required
               />

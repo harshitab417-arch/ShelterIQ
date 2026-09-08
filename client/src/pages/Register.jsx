@@ -49,12 +49,13 @@ export default function Register() {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="input-clean pl-9"
+                className="input-clean"
+                style={{ paddingLeft: '2.5rem' }}
                 placeholder="Dr. Vikram Sharma"
                 required
               />
@@ -64,12 +65,13 @@ export default function Register() {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">DRDO Email Address</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input-clean pl-9"
+                className="input-clean"
+                style={{ paddingLeft: '2.5rem' }}
                 placeholder="vikram@drdo.in"
                 required
               />
@@ -79,12 +81,13 @@ export default function Register() {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Organization / Lab</label>
             <div className="relative">
-              <Building className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={organization}
                 onChange={(e) => setOrganization(e.target.value)}
-                className="input-clean pl-9"
+                className="input-clean"
+                style={{ paddingLeft: '2.5rem' }}
                 required
               />
             </div>
@@ -93,12 +96,13 @@ export default function Register() {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input-clean pl-9"
+                className="input-clean"
+                style={{ paddingLeft: '2.5rem' }}
                 placeholder="••••••••"
                 required
               />
