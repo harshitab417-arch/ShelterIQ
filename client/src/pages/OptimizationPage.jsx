@@ -5,6 +5,7 @@ import {
   ArrowRight, Activity, Flame, Snowflake, AlertTriangle, Layers, BarChart2, Eye
 } from 'lucide-react';
 import Shelter3DViewer from '../three/Shelter3DViewer';
+import OptimizedDesignVisualization from '../components/ClimateTimeMachine/OptimizedDesignVisualization';
 
 export default function OptimizationPage() {
   const [simulations, setSimulations] = useState([]);
@@ -658,31 +659,12 @@ export default function OptimizationPage() {
         </div>
       )}
 
-      {/* STAGE 3: 3D CAD VIEWER TAB */}
+      {/* STAGE 3: CLIMATE TIME MACHINE / VIEW OPTIMIZED DESIGN IN 3D */}
       {activeTab === '3d' && (
-        <div className="card-clean p-4 space-y-4">
-          <div className="flex justify-between items-center border-b pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">3D CAD Optimized Shelter Visualization</h3>
-              <p className="text-xs text-slate-500">
-                Displaying shelter with optimized orientation ({optResult?.winner?.config?.orientation || 180}°) and window dimensions ({optResult?.winner?.config?.windowArea || 2.5} m²).
-              </p>
-            </div>
-          </div>
-
-          <div className="h-[500px] w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900">
-            <Shelter3DViewer
-              shape={shape}
-              dimensions={inheritedShelter.geometry || inheritedShelter.dimensions}
-              materials={inheritedMaterials}
-              openings={{
-                windowArea: optResult?.winner?.config?.windowArea || 2.5,
-                doorArea: 1.8
-              }}
-              orientation={optResult?.winner?.config?.orientation || 180}
-            />
-          </div>
-        </div>
+        <OptimizedDesignVisualization
+          currentSim={currentSim}
+          optResult={optResult}
+        />
       )}
     </div>
   );
