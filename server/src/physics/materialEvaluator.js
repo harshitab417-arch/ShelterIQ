@@ -304,8 +304,85 @@ function compareAllShapes({
   };
 }
 
+/**
+ * Optimal Auto-Evaluation across all 4 shelter archetypes:
+ * Evaluates the user's selected shape alongside all alternative archetypes (normalized to equal floor area).
+ * Returns the overall BEST performing shape simulation result, with shape upgrade metadata.
+ */
+function runOptimalAutoEvaluation({
+  shape = 'rectangle',
+  dimensions = {},
+  openings = {},
+  occupants = 4,
+  climateDataset,
+  comfortSettings = { minComfortTemp: 18, maxComfortTemp: 24 }
+}) {
+  const normUserShape = (shape || 'rectangle').toLowerCase().trim();
+  const userGeom = calculateGeometry(normUserShape, dimensions, openings);
+  const targetFloorArea = userGeom.floorArea || 24.0;
+
+  const shapes = ['rectangle', 'dome', 'a-frame', 'quonset'];
+  const eqDimensions = createEquivalentDimensions(targetFloorArea);
+
+  const evaluatedShapes = [];
+
+  for (const shapeKey of shapes) {
+    const activeDims = (shapeKey === normUserShape && dimensions && Object.keys(dimensions).length > 0)
+      ? dimensions
+      : eqDimensions[shapeKey === 'a-frame' ? 'aframe' : shapeKey];
+
+    const evalRes = runAutoEvaluation({
+      shape: shapeKey,
+      dimensions: activeDims,
+      openings,
+      occupants,
+      climateDataset,
+      comfortSettings
+    });
+
+    evaluatedShapes.push({
+      shapeKey,
+      evalRes,
+      score: evalRes.recommended.score
+    });
+  }
+
+  // Sort descending by score
+  evaluatedShapes.sort((a, b) => b.score - a.score);
+
+  const best = evaluatedShapes[0];
+  const userShapeEval = evaluatedShapes.find(e => e.shapeKey === normUserShape) || best;
+  const isShapeOptimized = best.shapeKey !== normUserShape;
+
+  const winnerTitle = best.shapeKey === 'a-frame' ? 'A-Frame' : best.shapeKey.charAt(0).toUpperCase() + best.shapeKey.slice(1);
+  const userTitle = normUserShape === 'a-frame' ? 'A-Frame' : normUserShape.charAt(0).toUpperCase() + normUserShape.slice(1);
+
+  let shapeOptimizationNote = '';
+  if (isShapeOptimized) {
+    shapeOptimizationNote = `User initially selected ${userTitle} (Thermal Score: ${userShapeEval.score}/100). The AI physics solver evaluated all 4 architectural archetypes for ${targetFloorArea} m² usable floor area and automatically upgraded the design to ${winnerTitle} (Thermal Score: ${best.score}/100) as the optimal thermal envelope for this climate.`;
+  } else {
+    shapeOptimizationNote = `User-selected shape (${userTitle}) achieved the highest thermal performance score (${best.score}/100) among all 4 architectural archetypes evaluated for ${targetFloorArea} m² usable floor area.`;
+  }
+
+  return {
+    ...best.evalRes,
+    userSelectedShape: normUserShape,
+    userShapeScore: userShapeEval.score,
+    shapeOptimized: isShapeOptimized,
+    shapeOptimizationNote,
+    allShapeScores: evaluatedShapes.map(s => ({
+      shape: s.shapeKey,
+      score: s.score,
+      minIndoorTemp: s.evalRes.recommended.metrics.minIndoorTemp,
+      totalHeatLoss: s.evalRes.recommended.metrics.totalHeatLoss
+    }))
+  };
+}
+
 module.exports = {
   runAutoEvaluation,
+  runOptimalAutoEvaluation,
   compareAllShapes,
   calculateNormalizedScores
 };
+

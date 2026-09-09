@@ -19,13 +19,7 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate('/settings')}
-          className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-          title="Settings"
-        >
-          <Sliders className="w-4 h-4" />
-        </button>
+        
 
         <div className="h-5 w-[1px] bg-slate-200"></div>
 

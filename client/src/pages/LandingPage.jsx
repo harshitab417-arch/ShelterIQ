@@ -18,10 +18,10 @@ export default function LandingPage() {
       <header className="bg-white border-b border-slate-200 py-4 px-8 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-sky-600 flex items-center justify-center text-white font-bold text-lg">
-            D
+            S
           </div>
           <div>
-            <h1 className="font-display font-bold text-slate-900 text-base">DRDO PASSIVE SHELTER</h1>
+            <h1 className="font-display font-bold text-slate-900 text-base">SHELTER IQ</h1>
             <p className="text-xs text-sky-700 font-medium">Area-Specific Thermal Engineering Platform</p>
           </div>
         </div>

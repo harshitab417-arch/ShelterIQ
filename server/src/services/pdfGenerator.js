@@ -125,11 +125,16 @@ function generateSimulationPDF(simulation, outputPath) {
       const shelterName = simulation.shelter?.name || simulation.name || 'High-Altitude Passive Shelter';
       const locName = climate.location || climate.name || 'Lahaul, Lahaul and Spiti, Himachal Pradesh, India';
 
+      const userShapeLabel = simulation.userSelectedShape ? (simulation.userSelectedShape.charAt(0).toUpperCase() + simulation.userSelectedShape.slice(1)) : '';
+      const shapeLabel = simulation.shapeOptimized && userShapeLabel
+        ? `${shape} (AI Upgraded from ${userShapeLabel})`
+        : shape;
+
       const execSummary = [
         ['Shelter Name:', shelterName],
         ['Location / Climate Zone:', locName],
         ['Location Ambient Bounds:', `${minAmbient.toFixed(1)}°C (Min) to ${maxAmbient.toFixed(1)}°C (Max)`],
-        ['Predicted Optimal Shelter Shape:', shape]
+        ['Optimal Shelter Shape:', shapeLabel]
       ];
 
       doc.fontSize(8.5).font('Helvetica');

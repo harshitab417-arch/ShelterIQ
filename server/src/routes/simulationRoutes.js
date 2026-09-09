@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Simulation = require('../models/Simulation');
 const { runThermalSimulation } = require('../physics/simulationEngine');
-const { runAutoEvaluation, compareAllShapes } = require('../physics/materialEvaluator');
+const { runAutoEvaluation, runOptimalAutoEvaluation, compareAllShapes } = require('../physics/materialEvaluator');
 const { validateDimensions } = require('../physics/shapeCalculator');
 const { checkIsFallback } = require('../config/db');
 const memoryStore = require('../config/inMemoryStore');
 
-// POST /api/simulation/run-auto — Automatic material evaluation + recommendation for selected shape
+// POST /api/simulation/run-auto — Automatic material evaluation + multi-shape optimization
 router.post('/run-auto', async (req, res) => {
   try {
     const {
@@ -38,8 +38,8 @@ router.post('/run-auto', async (req, res) => {
     const confSettings = comfortSettings || { minComfortTemp: 18, maxComfortTemp: 24 };
     const shelterOpenings = openings || { windowCount: 2, windowArea: 2.5, doorCount: 1, openingOrientation: 180 };
 
-    // Run automatic multi-material evaluation across candidate configurations
-    const evalResult = runAutoEvaluation({
+    // Run optimal multi-shape & material evaluation (selects overall best shelter shape)
+    const evalResult = runOptimalAutoEvaluation({
       shape: normShape,
       dimensions: activeDimensions,
       openings: shelterOpenings,
@@ -48,15 +48,28 @@ router.post('/run-auto', async (req, res) => {
       comfortSettings: confSettings
     });
 
-    const { recommended, top3, totalCombinationsEvaluated, fullSimulationResult, bestShelter, geometry: calculatedGeometry } = evalResult;
+    const {
+      recommended,
+      top3,
+      totalCombinationsEvaluated,
+      fullSimulationResult,
+      bestShelter,
+      geometry: calculatedGeometry,
+      userSelectedShape,
+      userShapeScore,
+      shapeOptimized,
+      shapeOptimizationNote,
+      allShapeScores,
+      shape: winningShape
+    } = evalResult;
 
-    const simName = name || `Simulation — ${normShape.toUpperCase()} (${new Date().toLocaleDateString()})`;
+    const simName = name || `Simulation — ${winningShape.toUpperCase()} (${new Date().toLocaleDateString()})`;
 
     const simPayload = {
       name: simName,
-      shape: normShape,
+      shape: winningShape,
       geometry: calculatedGeometry,
-      dimensions: activeDimensions,
+      dimensions: bestShelter.geometry || activeDimensions,
       shelter: bestShelter,
       climateDataset,
       comfortSettings: confSettings,
@@ -64,6 +77,11 @@ router.post('/run-auto', async (req, res) => {
       recommendation: recommended,
       topConfigurations: top3,
       totalCombinationsEvaluated,
+      userSelectedShape,
+      userShapeScore,
+      shapeOptimized,
+      shapeOptimizationNote,
+      allShapeScores,
       status: 'Completed',
       assumptions: fullSimulationResult.assumptions,
       warnings: fullSimulationResult.warnings,
