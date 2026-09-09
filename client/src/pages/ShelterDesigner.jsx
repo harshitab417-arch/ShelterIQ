@@ -140,6 +140,7 @@ export default function ShelterDesigner() {
   const [selectedRoofMat, setSelectedRoofMat] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [climateRegion, setClimateRegion] = useState('snowy');
 
   // Derive active dimensions from selected shape
   const currentDimensions = (() => {
@@ -269,6 +270,37 @@ export default function ShelterDesigner() {
               onChange={(e) => setShelterName(e.target.value)}
               className="input-clean"
             />
+          </div>
+
+          {/* Climate Region Background Selector */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+              <span>Climate Region Background</span>
+              <span className="text-[10px] text-sky-600 font-normal">Auto-renders 3D Environment</span>
+            </label>
+            <div className="grid grid-cols-5 gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-center">
+              {[
+                { id: 'snowy', icon: '❄️', label: 'Snow' },
+                { id: 'sunny', icon: '☀️', label: 'Sunny' },
+                { id: 'coastal', icon: '🌊', label: 'Coast' },
+                { id: 'rainy', icon: '🌧️', label: 'Rain' },
+                { id: 'forest', icon: '🌲', label: 'Forest' },
+              ].map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setClimateRegion(c.id)}
+                  className={`py-1.5 px-1 rounded-lg text-xs font-semibold transition flex flex-col items-center gap-0.5 ${
+                    climateRegion === c.id
+                      ? 'bg-white text-sky-700 shadow-sm border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="text-base">{c.icon}</span>
+                  <span className="text-[10px]">{c.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* ── RECTANGLE DIMS ── */}
@@ -422,6 +454,8 @@ export default function ShelterDesigner() {
             dimensions={currentDimensions}
             design={design}
             openings={openings}
+            environment={climateRegion}
+            onEnvironmentChange={setClimateRegion}
             height={400}
           />
         </div>

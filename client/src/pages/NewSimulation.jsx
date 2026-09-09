@@ -190,6 +190,7 @@ export default function NewSimulation() {
 
   // Step 1: Location & Climate
   const [selectedClimate, setSelectedClimate] = useState(null);
+  const [climateRegion, setClimateRegion] = useState(null);
 
   // Step 2: Shelter Design
   const [shelterName, setShelterName] = useState('DRDO High-Altitude Passive Shelter');
@@ -818,15 +819,41 @@ export default function NewSimulation() {
               {/* 3D Parametric Live Preview */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold text-slate-700">3D Parametric CAD View</p>
-                  <span className="text-[10px] text-sky-700 bg-sky-50 px-2 py-0.5 rounded font-semibold border border-sky-100">
-                    Auto-Updates on Input
-                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">3D Parametric CAD View</p>
+                    <p className="text-[10px] text-slate-400">Environment auto-defaults from selected climate</p>
+                  </div>
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                    {[
+                      { id: 'snowy', icon: '❄️', title: 'Snowy' },
+                      { id: 'sunny', icon: '☀️', title: 'Sunny' },
+                      { id: 'coastal', icon: '🌊', title: 'Coastal' },
+                      { id: 'rainy', icon: '🌧️', title: 'Rainy' },
+                      { id: 'forest', icon: '🌲', title: 'Forest' },
+                    ].map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setClimateRegion(c.id)}
+                        title={c.title}
+                        className={`px-1.5 py-0.5 rounded text-xs transition ${
+                          climateRegion === c.id
+                            ? 'bg-white text-sky-700 shadow-sm font-bold border border-slate-200'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {c.icon}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <Shelter3DViewer
                   shape={selectedShape}
                   dimensions={currentDimensions}
                   openings={{ ...openings, doorCount }}
+                  climate={selectedClimate}
+                  environment={climateRegion}
+                  onEnvironmentChange={setClimateRegion}
                   height={340}
                 />
               </div>
