@@ -23,10 +23,17 @@ router.get('/', async (req, res) => {
 // POST /api/materials
 router.post('/', async (req, res) => {
   try {
-    const { name, category, thermalConductivity, density, specificHeat, emissivity, solarAbsorptivity, notes } = req.body;
+    const { name, category, thermalConductivity, density, specificHeat, emissivity, solarAbsorptivity, thicknessDefault, validThicknesses, notes } = req.body;
     if (!name || !category || !thermalConductivity || !density || !specificHeat) {
       return res.status(400).json({ error: 'Missing required material property fields.' });
     }
+
+    let parsedValidThicknesses = undefined;
+    if (Array.isArray(validThicknesses) && validThicknesses.length > 0) {
+      parsedValidThicknesses = validThicknesses.map(v => Number(v) > 2 ? Number((Number(v) / 1000).toFixed(4)) : Number(v));
+    }
+
+    const defaultThick = thicknessDefault ? (Number(thicknessDefault) > 2 ? Number((Number(thicknessDefault) / 1000).toFixed(4)) : Number(thicknessDefault)) : 0.10;
 
     if (checkIsFallback()) {
       const newMat = {
@@ -38,6 +45,8 @@ router.post('/', async (req, res) => {
         specificHeat: Number(specificHeat),
         emissivity: Number(emissivity || 0.9),
         solarAbsorptivity: Number(solarAbsorptivity || 0.7),
+        thicknessDefault: defaultThick,
+        validThicknesses: parsedValidThicknesses,
         notes: notes || '',
         isCustom: true,
         createdAt: new Date().toISOString()
@@ -54,6 +63,8 @@ router.post('/', async (req, res) => {
       specificHeat: Number(specificHeat),
       emissivity: Number(emissivity || 0.9),
       solarAbsorptivity: Number(solarAbsorptivity || 0.7),
+      thicknessDefault: defaultThick,
+      validThicknesses: parsedValidThicknesses,
       notes,
       isCustom: true
     });

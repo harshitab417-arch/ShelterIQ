@@ -249,12 +249,12 @@ export default function SimulationResultsPage({ simulation, onBack }) {
           )}
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-display font-bold text-slate-900">{simulation.name}</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-sky-100 text-sky-800 border border-sky-200">
-              {shape}
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1 font-mono">
+              <Sparkles className="w-3 h-3 text-emerald-600" /> {shape} {simulation.shapeOptimized ? '(Optimal Shape Selected)' : ''}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Location: {simulation.climateDataset?.location || 'High-Altitude Region'} | Evaluated {simulation.totalCombinationsEvaluated || rec.totalCombinationsEvaluated || 72} Material Combinations
+            Location: {simulation.climateDataset?.location || 'High-Altitude Region'} | Evaluated {simulation.totalCombinationsEvaluated || rec.totalCombinationsEvaluated || 72} Material Combinations across 4 Architectural Archetypes
           </p>
         </div>
 
@@ -267,6 +267,28 @@ export default function SimulationResultsPage({ simulation, onBack }) {
           </button>
         </div>
       </div>
+
+      {/* AI Shape Optimization Alert Banner */}
+      {simulation.shapeOptimized && (
+        <div className="p-4 bg-gradient-to-r from-emerald-50 via-sky-50 to-emerald-50 border-2 border-emerald-400/80 rounded-2xl shadow-sm space-y-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 bg-emerald-600 text-white rounded-lg font-bold text-xs flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5" /> AI Shape Optimization
+              </span>
+              <h3 className="text-xs font-bold text-emerald-950 uppercase tracking-wide">
+                Optimal Architectural Shape Selected
+              </h3>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+              Optimal {shape.toUpperCase()} Score: {rec.score || 85.0}/100 (vs {simulation.userSelectedShape?.toUpperCase()} Score: {simulation.userShapeScore || '--'}/100)
+            </span>
+          </div>
+          <p className="text-xs text-slate-700 leading-relaxed">
+            {simulation.shapeOptimizationNote || `You initially selected ${simulation.userSelectedShape?.toUpperCase()}, but the multi-shape thermal solver evaluated all 4 architectural archetypes under equivalent floor area and climate conditions. It automatically selected ${shape.toUpperCase()} as the primary shelter design for your 3D CAD viewer, metrics, and report output because it achieved superior thermal performance.`}
+          </p>
+        </div>
+      )}
 
       {reportMsg && <div className="p-3 bg-sky-50 border border-sky-200 text-sky-800 text-xs rounded-lg">{reportMsg}</div>}
 

@@ -35,11 +35,11 @@ export default function Sidebar() {
         {/* Brand Header */}
         <div className="h-16 px-5 border-b border-slate-200 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-sky-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-            D
+            S
           </div>
           <div>
             <h1 className="font-display font-bold text-slate-800 text-sm tracking-tight leading-tight">
-              DRDO PASSIVE SHELTER
+              SHELTER IQ
             </h1>
             <p className="text-[11px] text-sky-700 font-medium">Thermal Simulation System</p>
           </div>
@@ -67,15 +67,6 @@ export default function Sidebar() {
             );
           })}
         </nav>
-      </div>
-
-      {/* Footer Info Badge */}
-      <div className="p-4 border-t border-slate-200 bg-slate-50/50">
-        <div className="flex items-center gap-2 text-xs text-slate-600 font-medium mb-1">
-          <ShieldAlert className="w-4 h-4 text-sky-600" />
-          <span>High Altitude Physics v2.4</span>
-        </div>
-        <p className="text-[11px] text-slate-400">Node.js Transient Engine | Leh, Ladakh</p>
       </div>
     </aside>
   );

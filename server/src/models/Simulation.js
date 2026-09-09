@@ -49,6 +49,10 @@ const simulationSchema = new mongoose.Schema({
       skyRadiation: Number
     }
   },
+  userSelectedShape: { type: String, default: 'rectangle' },
+  shapeOptimized: { type: Boolean, default: false },
+  shapeOptimizationNote: { type: String, default: '' },
+  allShapeScores: [{ type: mongoose.Schema.Types.Mixed }],
   status: { type: String, enum: ['Completed', 'Failed', 'Processing'], default: 'Completed' },
   assumptions: [String],
   warnings: [String],

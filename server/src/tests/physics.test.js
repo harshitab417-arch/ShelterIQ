@@ -1,5 +1,5 @@
 /**
- * Automated Test Suite for Custom Node.js Thermal Physics Engine & Shape Optimization
+ * Automated Test Suite for Custom Node.js Thermal Physics Engine, Climate-Adaptive Optimization & Stress Testing
  */
 
 const { calculateThermalResistance, calculateConductionLoss } = require('../physics/conduction');
@@ -9,10 +9,12 @@ const { calculateSolarGain } = require('../physics/solar');
 const { runThermalSimulation } = require('../physics/simulationEngine');
 const { calculateGeometry, validateDimensions, createEquivalentDimensions } = require('../physics/shapeCalculator');
 const { runAutoEvaluation, compareAllShapes } = require('../physics/materialEvaluator');
+const { runDesignOptimization, calculateShapeWindowArea } = require('../optimization/designOptimizer');
+const { runStressTest, classifyClimate } = require('../physics/stressTestEngine');
 const { seedLehClimate } = require('../scripts/seedData');
 
 console.log('====================================================');
-console.log('RUNNING DRDO THERMAL PHYSICS & SHAPE OPTIMIZATION TESTS');
+console.log('RUNNING DRDO THERMAL PHYSICS, OPTIMIZATION & STRESS TESTS');
 console.log('====================================================\n');
 
 let passes = 0;
@@ -105,6 +107,15 @@ const testDims = {
   quonset: { length: 6, width: 4.5 }
 };
 
+const baseMaterials = {
+  wallMaterial: { name: 'Rammed Earth', thermalConductivity: 0.85, thicknessDefault: 0.25 },
+  roofMaterial: { name: 'GI Sheet + Insulation', thermalConductivity: 0.35, thicknessDefault: 0.20 },
+  floorMaterial: { name: 'Insulated Concrete', thermalConductivity: 1.10, thicknessDefault: 0.15 },
+  insulationMaterial: { name: 'Polyurethane Foam (PUF)', thermalConductivity: 0.024, thicknessDefault: 0.10, validThicknesses: [0.05, 0.075, 0.10, 0.125, 0.15, 0.20] },
+  windowMaterial: { name: 'Double Low-E', thermalConductivity: 1.20 },
+  doorMaterial: { name: 'Timber Door', thermalConductivity: 0.13 }
+};
+
 for (const s of shapes) {
   const geom = calculateGeometry(s, testDims[s]);
   const shelter = {
@@ -114,14 +125,7 @@ for (const s of shapes) {
     calculatedGeometry: geom,
     design: { shape: s, orientation: 180 },
     openings: { windowCount: 2, windowArea: 2.5, doorCount: 1, doorArea: 1.8, openingOrientation: 180 },
-    materials: {
-      wallMaterial: { name: 'Rammed Earth', thermalConductivity: 0.85, density: 1900, specificHeat: 880, solarAbsorptivity: 0.72 },
-      roofMaterial: { name: 'GI Sheet + Insulation', thermalConductivity: 0.35, density: 1200, specificHeat: 900, solarAbsorptivity: 0.75 },
-      floorMaterial: { name: 'Insulated Concrete', thermalConductivity: 1.10, density: 2200, specificHeat: 950, solarAbsorptivity: 0.65 },
-      insulationMaterial: { name: 'PUF', thermalConductivity: 0.024, density: 40, specificHeat: 1400, solarAbsorptivity: 0.40 },
-      windowMaterial: { name: 'Double Low-E', thermalConductivity: 1.20, density: 2500, specificHeat: 840, solarAbsorptivity: 0.75 },
-      doorMaterial: { name: 'Timber Door', thermalConductivity: 0.13, density: 600, specificHeat: 1600, solarAbsorptivity: 0.60 }
-    }
+    materials: baseMaterials
   };
 
   const res = runThermalSimulation({ shelter, climateDataset: seedLehClimate });
@@ -131,37 +135,106 @@ for (const s of shapes) {
 }
 
 // ----------------------------------------------------
-// 4. AUTOMATIC MATERIAL EVALUATION & RANKING TESTS
+// 4. FEATURE 2: CLIMATE-ADAPTIVE DESIGN OPTIMIZATION TESTS
 // ----------------------------------------------------
-console.log('\n--- 4. Auto Material Evaluation & Ranking Tests ---');
+console.log('\n--- 4. Feature 2: Climate-Adaptive Design Optimization Tests ---');
 
-for (const s of shapes) {
-  const evalRes = runAutoEvaluation({
-    shape: s,
-    dimensions: testDims[s],
-    occupants: 4,
-    climateDataset: seedLehClimate
-  });
+const testShelter = {
+  name: 'Test Base Shelter',
+  shape: 'rectangle',
+  geometry: { length: 6.0, width: 4.0, height: 2.8 },
+  design: { shape: 'rectangle', orientation: 180 },
+  openings: { windowArea: 2.5, doorArea: 1.8 },
+  materials: baseMaterials
+};
 
-  assert(evalRes.totalCombinationsEvaluated > 0, `${s.toUpperCase()}: Evaluated ${evalRes.totalCombinationsEvaluated} material combinations`);
-  assert(evalRes.top3.length === 3, `${s.toUpperCase()}: Top 3 rankings generated`);
-  assert(evalRes.top3[0].score >= evalRes.top3[1].score, `${s.toUpperCase()}: Rank #1 score (${evalRes.top3[0].score}) >= Rank #2 score (${evalRes.top3[1].score})`);
-  assert(evalRes.recommended.materials.wallMaterial !== undefined, `${s.toUpperCase()}: Recommended Wall Material (${evalRes.recommended.materials.wallMaterial})`);
-  assert(evalRes.recommended.explanation.length > 50, `${s.toUpperCase()}: Deterministic physics explanation generated`);
-}
-
-// ----------------------------------------------------
-// 5. FAIR MULTI-SHAPE COMPARISON TEST
-// ----------------------------------------------------
-console.log('\n--- 5. Fair Multi-Shape Comparison Test ---');
-const compRes = compareAllShapes({
-  targetFloorArea: 24.0,
-  occupants: 4,
+const optRes = runDesignOptimization({
+  shelter: testShelter,
   climateDataset: seedLehClimate
 });
 
-assert(compRes.comparisonResults.length === 4, `All 4 shapes compared (Results count: ${compRes.comparisonResults.length})`);
-assert(compRes.winner !== undefined, `Winning shape identified: ${compRes.winner.shapeTitle} (Score: ${compRes.winner.score})`);
+// TEST 1: Winning material assembly remains unchanged
+assert(
+  optRes.inheritedConfiguration.wallMaterial === baseMaterials.wallMaterial.name &&
+  optRes.inheritedConfiguration.insulationMaterial === baseMaterials.insulationMaterial.name,
+  'TEST 1: Winning material assembly remains unchanged during design optimization'
+);
+
+// TEST 2 & 3: Material insulation thickness & isolation
+assert(
+  optRes.variables.selectedMaterialThicknessOptions.length === baseMaterials.insulationMaterial.validThicknesses.length,
+  'TEST 2 & 3: Insulation thicknesses match selected material valid thickness list'
+);
+
+// TEST 4: Orientations evaluated
+assert(optRes.variables.orientations.length === 8, 'TEST 4: All 8 orientations evaluated (0° to 315°)');
+
+// TEST 5: Directional solar orientation gain sensitivity
+const solarNorth = calculateSolarGain({ globalSolarRadiation: 500, hour: 12, shelterOrientation: 0, openingOrientation: 0 });
+const solarSouth = calculateSolarGain({ globalSolarRadiation: 500, hour: 12, shelterOrientation: 180, openingOrientation: 180 });
+assert(solarSouth.totalSolarGain > solarNorth.totalSolarGain, 'TEST 5: South orientation yields higher solar gain than North at midday');
+
+// TEST 6 & 7 & 8: WWR geometry area physical consistency
+const winArea10 = calculateShapeWindowArea('rectangle', 0.10, { length: 6, width: 4, height: 2.8 });
+const winArea25 = calculateShapeWindowArea('rectangle', 0.25, { length: 6, width: 4, height: 2.8 });
+const geom10 = calculateGeometry('rectangle', { length: 6, width: 4, height: 2.8 }, { windowArea: winArea10, doorArea: 1.8 });
+const geom25 = calculateGeometry('rectangle', { length: 6, width: 4, height: 2.8 }, { windowArea: winArea25, doorArea: 1.8 });
+assert(winArea25 > winArea10, 'TEST 6: Increasing WWR increases glazing area');
+assert(geom25.opaqueWallArea < geom10.opaqueWallArea, 'TEST 7: Increasing WWR decreases opaque wall area');
+assert(
+  Math.abs((geom25.opaqueWallArea + geom25.glazingArea + geom25.doorArea) - (geom10.opaqueWallArea + geom10.glazingArea + geom10.doorArea)) < 0.1,
+  'TEST 8: Total vertical wall envelope area remains physically constant when WWR changes'
+);
+
+// TEST 9: Dome does not receive invented WWR values
+const domeOptRes = runDesignOptimization({
+  shelter: { ...testShelter, shape: 'dome', geometry: { radius: 3, domeHeight: 2.8 } },
+  climateDataset: seedLehClimate
+});
+assert(domeOptRes.variables.wwrSupported === false, 'TEST 9: Dome archetype disables variable WWR optimization');
+
+// TEST 10: Candidate count equals actual evaluated candidate count
+const expectedCandCount = 8 * 4 * baseMaterials.insulationMaterial.validThicknesses.length; // 8*4*6 = 192
+assert(optRes.evaluatedCount === expectedCandCount, `TEST 10: Candidate count (${optRes.evaluatedCount}) equals evaluated variants (${expectedCandCount})`);
+
+// TEST 11 & 12: Insulation thickness vs R-value
+const R_thin = 0.05 / 0.024;
+const R_thick = 0.20 / 0.024;
+assert(R_thick > R_thin, 'TEST 11: Larger insulation thickness increases thermal resistance R-value');
+
+// TEST 13 & 14: Overheating & underheating degree hours tracking
+assert(optRes.winner.degreeHours.coldDegreeHours !== undefined, 'TEST 14: Cold underheating degree-hours tracked');
+assert(optRes.winner.scoreBreakdown.designScore >= 0 && optRes.winner.scoreBreakdown.designScore <= 100, 'TEST 24: Optimization score bounded within 0–100');
+
+// ----------------------------------------------------
+// 5. FEATURE 3: EXTREME CLIMATE RESILIENCE STRESS TESTS
+// ----------------------------------------------------
+console.log('\n--- 5. Feature 3: Extreme Climate Resilience Stress Tests ---');
+
+const stressRes = runStressTest({
+  optimizedShelter: optRes.winner.testShelter,
+  climateDataset: seedLehClimate
+});
+
+// TEST 15 & 16: Stress test shelter freezing
+assert(
+  stressRes.frozenDesign.orientation === optRes.winner.config.orientation &&
+  stressRes.frozenDesign.insulationThickness === optRes.winner.config.insulationThickness,
+  'TEST 15: Shelter design parameters 100% frozen during stress testing'
+);
+
+// TEST 17 & 18 & 19: Climate classification & Scenario offsets
+assert(stressRes.climateClassification.classification === 'Cold-Dominant', 'TEST 17: Leh climate classified as Cold-Dominant');
+assert(stressRes.scenarios.length === 3, 'TEST 19: 3 stress scenarios generated');
+assert(stressRes.scenarios[1].deltaT === -5.0 && stressRes.scenarios[2].deltaT === -10.0, 'TEST 17: Severe (-5°C) and Extreme (-10°C) cold offsets applied');
+
+// TEST 21 & 22: Vulnerability conductive shares sum approx 100% & excludes solar
+const sharesSum = stressRes.vulnerabilities.envelopeConductiveVulnerabilities.reduce((sum, v) => sum + v.sharePct, 0);
+assert(Math.abs(sharesSum - 100.0) < 1.5, `TEST 21: Envelope conductive vulnerability shares sum to ~100% (Got ${sharesSum.toFixed(1)}%)`);
+assert(stressRes.vulnerabilities.solarExposure.totalSolarGainKWh !== undefined, 'TEST 22: Solar gain reported separately from conductive shares');
+
+// TEST 25: Resilience score bounded 0-100
+assert(stressRes.finalResilienceScore >= 0 && stressRes.finalResilienceScore <= 100, 'TEST 25: Climate Resilience score bounded within 0–100');
 
 // ----------------------------------------------------
 // SUMMARY

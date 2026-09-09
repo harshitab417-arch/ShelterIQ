@@ -52,16 +52,17 @@ function computeInstantaneousHeatBalance({
   const wallThickness = geometry.wallThickness || materials.wallMaterial?.thicknessDefault || 0.25;
   const roofThickness = geometry.roofThickness || materials.roofMaterial?.thicknessDefault || 0.20;
   const floorThickness = geometry.floorThickness || materials.floorMaterial?.thicknessDefault || 0.15;
+  const insulationThickness = geometry.insulationThickness || shelter.insulationThickness || materials.insulationMaterial?.thicknessDefault || 0.10;
 
   const wallLayers = [
     { thickness: wallThickness, thermalConductivity: materials.wallMaterial?.thermalConductivity || 0.85 },
-    { thickness: 0.10, thermalConductivity: materials.insulationMaterial?.thermalConductivity || 0.035 }
+    { thickness: insulationThickness, thermalConductivity: materials.insulationMaterial?.thermalConductivity || 0.035 }
   ];
   const rWall = calculateThermalResistance(wallLayers, hInt, hExt);
 
   const roofLayers = [
     { thickness: roofThickness, thermalConductivity: materials.roofMaterial?.thermalConductivity || 0.35 },
-    { thickness: 0.12, thermalConductivity: materials.insulationMaterial?.thermalConductivity || 0.035 }
+    { thickness: insulationThickness, thermalConductivity: materials.insulationMaterial?.thermalConductivity || 0.035 }
   ];
   const rRoof = calculateThermalResistance(roofLayers, hInt, hExt);
 
